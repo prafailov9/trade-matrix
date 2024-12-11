@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.concurrent.CompletableFuture;
 
+import static java.util.concurrent.CompletableFuture.supplyAsync;
+
 
 @Service
 @Slf4j
@@ -33,7 +35,7 @@ public class MarketDataService implements MarketService {
 
     @Override
     public CompletableFuture<BigDecimal> getMarketPriceForProductAndCurrency(Product product, Currency currency) {
-        return CompletableFuture.supplyAsync(() ->
+        return supplyAsync(() ->
                 marketRepository.findMarketPriceForProductCurrency(product, currency)
                         .orElseThrow(() -> new MarketPriceNotFoundException(String.format("Failed to find market price for product %s", product.getProductName()))));
     }

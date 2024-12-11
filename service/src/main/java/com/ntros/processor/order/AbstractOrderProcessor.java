@@ -29,14 +29,20 @@ public abstract class AbstractOrderProcessor<T extends OrderRequest, R extends O
         this.orderService = orderService;
     }
 
+    /**
+     * Process incoming order request.
+     * - Initialize order, perform validations. Once initialized, it will be placed with OPEN status.
+     * - After that, order fulfillment begins. It will be fulfilled based on its directive(BUY/SELL)
+     *      and type(MARKET, LIMIT, STOP)
+     * - Build response
+     * @param orderRequest - incoming order
+     * @return Order Response
+     */
     @Override
     public CompletableFuture<R> processOrder(T orderRequest) {
-        // initialize order, perform validations
-        // fulfill order directive(buy/sell)
-        // build response
         return initialize(orderRequest)
-                .thenComposeAsync(initializedOrder -> process(initializedOrder)
-                        .thenComposeAsync(finalizedOrder -> buildCreateOrderResponse(finalizedOrder, Status.SUCCESS)))
+                .thenComposeAsync(this::process, executor)
+                .thenComposeAsync(processedOrder -> buildOrderResponse(processedOrder, Status.SUCCESS))
                 .exceptionally(ex -> {
                     log.error("Failed to process order {}. Message: {}", orderRequest, ex.getMessage());
                     throw new OrderProcessingException(ex.getMessage(), ex.getCause());
@@ -47,7 +53,7 @@ public abstract class AbstractOrderProcessor<T extends OrderRequest, R extends O
 
     protected abstract CompletableFuture<Order> process(Order order);
 
-    protected abstract CompletableFuture<R> buildCreateOrderResponse(Order order, Status status);
+    protected abstract CompletableFuture<R> buildOrderResponse(Order order, Status status);
 
 
 }

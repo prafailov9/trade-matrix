@@ -26,6 +26,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
+
+import static java.util.concurrent.CompletableFuture.supplyAsync;
+
 @Service
 @Slf4j
 @Transactional
@@ -52,45 +55,40 @@ public class WalletDataService implements WalletService {
 
     @Override
     public CompletableFuture<Wallet> getWallet(int walletId) {
-        return CompletableFuture
-                .supplyAsync(() -> walletRepository.findById(walletId)
-                        .orElseThrow(() -> new WalletNotFoundException("Wallet not found for id: " + walletId)), executor);
+        return supplyAsync(() -> walletRepository.findById(walletId)
+                .orElseThrow(() -> new WalletNotFoundException("Wallet not found for id: " + walletId)), executor);
     }
 
     @Override
     public CompletableFuture<Wallet> getWalletByCurrencyCodeAndAccountNumber(String currencyCode, String accountNumber) {
-        return CompletableFuture
-                .supplyAsync(() ->
-                                walletRepository.findByCurrencyCodeAccountNumber(currencyCode, accountNumber)
-                                        .orElseThrow(() ->
-                                                new WalletNotFoundException(
-                                                        String.format("Wallet not found for [%s, %s]", currencyCode, accountNumber)))
-                        , executor);
+        return supplyAsync(() ->
+                        walletRepository.findByCurrencyCodeAccountNumber(currencyCode, accountNumber)
+                                .orElseThrow(() ->
+                                        new WalletNotFoundException(
+                                                String.format("Wallet not found for [%s, %s]", currencyCode, accountNumber)))
+                , executor);
     }
 
     @Override
     public CompletableFuture<Wallet> getWalletByCurrencyNameAndAccountId(String currencyName, int accountId) {
-        return CompletableFuture
-                .supplyAsync(() -> walletRepository.findByCurrencyNameAccountId(currencyName, accountId)
-                        .orElseThrow(() -> new WalletNotFoundForCurrencyAndAccountException(currencyName, accountId)), executor);
+        return supplyAsync(() -> walletRepository.findByCurrencyNameAccountId(currencyName, accountId)
+                .orElseThrow(() -> new WalletNotFoundForCurrencyAndAccountException(currencyName, accountId)), executor);
     }
 
     @Override
     public CompletableFuture<Wallet> getWalletByCurrencyCodeAndAccountId(String currencyCode, int accountId) {
-        return CompletableFuture
-                .supplyAsync(() -> walletRepository.findByCurrencyCodeAccountId(currencyCode, accountId)
-                        .orElseThrow(() -> new WalletNotFoundForCurrencyAndAccountException(currencyCode, accountId)), executor);
+        return supplyAsync(() -> walletRepository.findByCurrencyCodeAccountId(currencyCode, accountId)
+                .orElseThrow(() -> new WalletNotFoundForCurrencyAndAccountException(currencyCode, accountId)), executor);
     }
 
     @Override
     public CompletableFuture<List<Wallet>> getAllWallets() {
-        return CompletableFuture.supplyAsync(walletRepository::findAll, executor);
+        return supplyAsync(walletRepository::findAll, executor);
     }
 
     @Override
     public CompletableFuture<List<Wallet>> getAllWalletsByAccount(final int accountId) {
-        return CompletableFuture
-                .supplyAsync(() -> walletRepository.findAllByAccount(accountId), executor)
+        return supplyAsync(() -> walletRepository.findAllByAccount(accountId), executor)
                 .exceptionally(ex -> {
                     log.error(ex.getMessage(), ex.getCause());
                     throw new WalletNotFoundForAccountException(accountId, ex.getCause());
@@ -99,8 +97,7 @@ public class WalletDataService implements WalletService {
 
     @Override
     public CompletableFuture<Wallet> createWallet(WalletDTO walletDTO) {
-        return CompletableFuture
-                .supplyAsync(() -> walletConverter.toModel(walletDTO), executor)
+        return supplyAsync(() -> walletConverter.toModel(walletDTO), executor)
                 .thenApply(wallet ->
                         getAndSetCurrencyAccount(walletDTO.getCurrencyCode(), walletDTO.getAccountNumber(), wallet))
                 .thenApply(this::updateActiveWallet)
@@ -109,20 +106,19 @@ public class WalletDataService implements WalletService {
 
     @Override
     public CompletableFuture<Wallet> createWallet(Wallet wallet) {
-        return CompletableFuture.supplyAsync(() -> create(wallet));
+        return supplyAsync(() -> create(wallet));
     }
 
     @Override
     public CompletableFuture<Integer> deleteWallet(UniqueWalletDTO uniqueWalletDTO) {
-        return CompletableFuture
-                .supplyAsync(() -> delete(uniqueWalletDTO.getCurrencyCode(), uniqueWalletDTO.getAccountNumber()), executor);
+        return supplyAsync(() -> delete(uniqueWalletDTO.getCurrencyCode(), uniqueWalletDTO.getAccountNumber()), executor);
     }
 
     @Override
     public CompletableFuture<Void> updateBalance(int walletId, BigDecimal balance) {
         return CompletableFuture.runAsync(() -> {
             try {
-                 walletRepository.updateBalance(walletId, balance);
+                walletRepository.updateBalance(walletId, balance);
             } catch (DataAccessException ex) {
                 String error = String.format("Could not update balance for wallet: %s", walletId);
                 log.error(error, ex);
@@ -134,7 +130,7 @@ public class WalletDataService implements WalletService {
 
     @Override
     public CompletableFuture<Wallet> validateBalance(Wallet wallet, BigDecimal price, int quantity) {
-        return CompletableFuture.supplyAsync(() -> {
+        return supplyAsync(() -> {
             BigDecimal totalOrderValue = price.multiply(BigDecimal.valueOf(quantity));
             if (wallet.getBalance().compareTo(totalOrderValue) < 0) {
                 throw new InsufficientFundsException("Not enough balance for order.");

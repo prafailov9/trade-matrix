@@ -15,16 +15,14 @@ import java.util.concurrent.Executor;
 public class CreateOrderProcessorController extends AbstractOrderProcessorController<CreateOrderRequest, CreateOrderResponse> {
 
 
-    public CreateOrderProcessorController(Executor executor,
-                                          OrderProcessor<CreateOrderRequest, CreateOrderResponse> orderProcessor) {
-
+    public CreateOrderProcessorController(Executor executor, OrderProcessor<CreateOrderRequest, CreateOrderResponse> orderProcessor) {
         super(executor, orderProcessor);
     }
 
     @PostMapping
     @ResponseBody
-    public CompletableFuture<ResponseEntity<?>> processOrder(@RequestBody @Validated CreateOrderRequest orderRequest) {
-        return process(orderRequest)
+    public CompletableFuture<ResponseEntity<?>> processOrder(@RequestBody @Validated CreateOrderRequest createOrderRequest) {
+        return process(createOrderRequest)
                 .handleAsync(this::handleResponseAsync, executor);
     }
 

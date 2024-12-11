@@ -5,16 +5,17 @@ import com.ntros.dataservice.order.OrderService;
 import com.ntros.dto.order.request.CreateOrderRequest;
 import com.ntros.dto.order.response.CreateOrderResponse;
 import com.ntros.dto.order.response.Status;
-import com.ntros.exception.CreateOrderFailedException;
 import com.ntros.model.order.Order;
 import com.ntros.processor.order.execution.OrderExecution;
-import com.ntros.processor.order.initialization.CreateOrderInitialization;
+import com.ntros.processor.order.initialization.create.CreateOrderInitialization;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+
+import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 /**
  * Order Submission Workflow:
@@ -56,8 +57,8 @@ public class CreateOrderProcessor extends AbstractOrderProcessor<CreateOrderRequ
 
 
     @Override
-    protected CompletableFuture<CreateOrderResponse> buildCreateOrderResponse(Order order, Status status) {
-        return CompletableFuture.supplyAsync(() -> {
+    protected CompletableFuture<CreateOrderResponse> buildOrderResponse(Order order, Status status) {
+        return supplyAsync(() -> {
             CreateOrderResponse createOrderResponse = new CreateOrderResponse();
             createOrderResponse.setStatus(status);
             createOrderResponse.setCreateOrderRequest(orderConverter.toDTO(order));

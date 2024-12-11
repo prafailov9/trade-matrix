@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
 
+import static java.util.concurrent.CompletableFuture.supplyAsync;
+
 @Service
 @Slf4j
 public class PortfolioDataService implements PortfolioService {
@@ -24,7 +26,7 @@ public class PortfolioDataService implements PortfolioService {
 
     @Override
     public CompletableFuture<Portfolio> getPortfolioByAccountProductIsin(Account account, Product product) {
-        return CompletableFuture.supplyAsync(() ->
+        return supplyAsync(() ->
                 portfolioRepository.findByAccountNumberProductIsin(account.getAccountNumber(), product.getIsin())
                         .orElseThrow(() -> new PositionNotFoundException(
                                 String.format("portfolio not found for account: %s, product=%s",

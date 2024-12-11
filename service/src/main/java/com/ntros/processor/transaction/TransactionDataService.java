@@ -1,7 +1,5 @@
 package com.ntros.processor.transaction;
 
-import com.ntros.dataservice.position.PositionService;
-import com.ntros.dataservice.wallet.WalletService;
 import com.ntros.exception.FailedOrdersDeleteException;
 import com.ntros.exception.TransactionSaveFailedException;
 import com.ntros.model.transaction.Transaction;
@@ -18,6 +16,8 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import static java.util.concurrent.CompletableFuture.supplyAsync;
+
 @Service
 @Slf4j
 public class TransactionDataService implements TransactionService {
@@ -28,7 +28,9 @@ public class TransactionDataService implements TransactionService {
     private final TransactionTypeRepository transactionTypeRepository;
 
     @Autowired
-    public TransactionDataService(Executor executor, TransactionRepository transactionRepository, TransactionTypeRepository transactionTypeRepository) {
+    public TransactionDataService(Executor executor,
+                                  TransactionRepository transactionRepository,
+                                  TransactionTypeRepository transactionTypeRepository) {
         this.executor = executor;
         this.transactionRepository = transactionRepository;
         this.transactionTypeRepository = transactionTypeRepository;
@@ -38,16 +40,14 @@ public class TransactionDataService implements TransactionService {
     @Modifying
     @Override
     public CompletableFuture<Transaction> createTransaction(Transaction transaction) {
-        return CompletableFuture.supplyAsync(() -> {
+        return supplyAsync(() -> {
             try {
                 Transaction saved = transactionRepository.save(transaction);
-                log.info("saved transaction [tx_id={}, account={}, product={}, price={}]",
-                        saved.getTransactionId(), saved.getWallet().getAccount().getAccountNumber(),
-                        saved.getProduct().getProductName(), saved.getPrice());
+                log.info("saved transaction: {}", saved);
                 return saved;
             } catch (DataIntegrityViolationException ex) {
                 log.error("error while creating transaction {} for [product={}, account={}]", transaction,
-                        transaction.getProduct().getProductName(), transaction.getWallet().getAccount());
+                        transaction.getProduct(), transaction.getWallet().getAccount());
                 throw new TransactionSaveFailedException(ex.getMessage(), ex);
             }
         }, executor);
@@ -55,7 +55,7 @@ public class TransactionDataService implements TransactionService {
 
     @Override
     public CompletableFuture<TransactionType> getTransactionType(String type) {
-        return CompletableFuture.supplyAsync(() -> transactionTypeRepository.findOneByTransactionTypeName(type)
+        return supplyAsync(() -> transactionTypeRepository.findOneByTransactionTypeName(type)
                 .orElseThrow(() -> new FailedOrdersDeleteException(String.format("Could not find tx type with name: %s", type)))
         );
     }

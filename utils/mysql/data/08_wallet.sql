@@ -433,6 +433,7 @@ insert into wallet (account_id, currency_id, balance, is_main) values (727, 66, 
 insert into wallet (account_id, currency_id, balance, is_main) values (195, 66, 9785339.312686, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (164, 119, 4486523.383008, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (304, 49, 5775291.808842, false);
+insert into wallet (account_id, currency_id, balance, is_main) values (625, 143, 2606500.4728, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (311, 27, 9705750.749021, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (96, 3, 30792.896208, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (457, 98, 6806802.004585, false);

@@ -1,4 +1,4 @@
-package com.ntros.processor.order.initialization;
+package com.ntros.processor.order.initialization.create;
 
 import com.ntros.dto.order.request.CreateOrderRequest;
 import com.ntros.model.order.Order;
@@ -9,6 +9,10 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * First step of the order processing.
+ * Initialization is based on the order's directive(BUY/SELL).
+ */
 @Service
 @Slf4j
 public class CreateOrderInitializationService implements CreateOrderInitialization {
@@ -23,6 +27,12 @@ public class CreateOrderInitializationService implements CreateOrderInitializati
     }
 
 
+    /**
+     * Instantiates an initializer service object based on the order's transaction type(directive).
+     * Matches the transactionType name to the initializer service's name(BUY/SELL)
+     * @param createOrderRequest - order to initialize
+     * @return - initialized order domain object
+     */
     @Override
     public CompletableFuture<Order> initializeOrder(CreateOrderRequest createOrderRequest) {
         CreateOrderInitializer initializer = createOrderInitializers.get(createOrderRequest.getTransactionType().toLowerCase());

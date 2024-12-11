@@ -46,7 +46,6 @@ public abstract class AbstractOrderExecutor implements OrderExecutor {
                         log.info("No matching orders found for limit order: {}", order.getOrderId());
                         return CompletableFuture.completedFuture(order);  // No matches, keep order open
                     }
-                    // Step 2: Execute fulfillment for matching orders
                     return executeFulfillment(order, matchingOrders);
                 }, executor)
                 .exceptionally(ex -> {
@@ -58,24 +57,28 @@ public abstract class AbstractOrderExecutor implements OrderExecutor {
         return fulfillOrders(incomingOrder, matchingOrders)
                 .thenComposeAsync(orderService::determineAndUpdateCurrentStatus, executor)
                 .thenComposeAsync(orderStatus -> {
-                    incomingOrder.getOrderStatusList().add(orderStatus);
+                    incomingOrder.getOrderStatuses().add(orderStatus);
                     return orderService.createOrder(incomingOrder);
                 }, executor);
     }
 
 
-    protected CompletableFuture<Void> adjustWalletBalances(Order buyOrder, Order sellOrder, int matchedQuantity) {
+    protected CompletableFuture<Void> transferFundsAndAssets(Order buyOrder, Order sellOrder, int matchedQuantity) {
         BigDecimal orderPrice = sellOrder.getPrice();  // Use the sell order's price
         BigDecimal totalCost = orderPrice.multiply(BigDecimal.valueOf(matchedQuantity));
 
-        CompletableFuture<Void> buyerUpdate = walletService.updateBalance(buyOrder.getWallet().getWalletId(), totalCost.negate());
-        CompletableFuture<Void> sellerUpdate = positionService.updatePosition(sellOrder.getWallet().getAccount(), sellOrder.getProduct(), matchedQuantity);
+        CompletableFuture<Void> buyerBalanceUpdate = walletService.updateBalance(buyOrder.getWallet().getWalletId(), totalCost.negate());
+        CompletableFuture<Void> sellerBalanceUpdate = walletService.updateBalance(sellOrder.getWallet().getWalletId(), totalCost);
 
-        return CompletableFuture.allOf(buyerUpdate, sellerUpdate)
-                .thenRunAsync(() ->
-                        log.info("Successfully updated balances. Buyer debited: {}, Seller debited shares: {}",
-                                totalCost, matchedQuantity)
-                        , executor)
+        CompletableFuture<Void> buyerPositionUpdate = positionService.updatePosition(
+                buyOrder.getWallet().getAccount(), buyOrder.getProduct(), matchedQuantity, buyOrder.getSide());
+        CompletableFuture<Void> sellerPositionUpdate = positionService.updatePosition(
+                sellOrder.getWallet().getAccount(), sellOrder.getProduct(), matchedQuantity, sellOrder.getSide());
+
+        return CompletableFuture.allOf(buyerBalanceUpdate, sellerBalanceUpdate, sellerPositionUpdate, buyerPositionUpdate)
+                .thenRunAsync(
+                        () -> log.info("Successfully updated balances. Buyer debited: {}, Seller debited shares: {}",
+                                        totalCost, matchedQuantity), executor)
                 .exceptionally(ex -> {
                     log.error("Failed to adjust wallet or position balances: {}", ex.getMessage());
                     throw new BalanceAdjustmentException("Error adjusting balances", ex);

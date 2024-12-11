@@ -7,3 +7,5 @@ logging:
   level:
     org.springframework: DEBUG
 #R8HWBA167JXNVQDP - alpha-vantage api key
+
+# server port = 8081, debug port = 5006

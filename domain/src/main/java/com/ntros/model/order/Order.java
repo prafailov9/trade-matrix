@@ -35,7 +35,7 @@ public class Order {
     private Product product;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.REMOVE)
-    private List<OrderStatus> orderStatusList;
+    private List<OrderStatus> orderStatuses;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "side", nullable = false)

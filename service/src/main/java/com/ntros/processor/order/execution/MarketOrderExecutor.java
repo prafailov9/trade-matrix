@@ -4,6 +4,7 @@ import com.ntros.dataservice.order.OrderService;
 import com.ntros.dataservice.portfolio.PortfolioService;
 import com.ntros.dataservice.position.PositionService;
 import com.ntros.dataservice.wallet.WalletService;
+import com.ntros.exception.RetryLimitExceededException;
 import com.ntros.model.order.Order;
 import com.ntros.model.order.Side;
 import com.ntros.model.portfolio.Portfolio;
@@ -22,14 +23,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
+import static java.util.concurrent.CompletableFuture.allOf;
+
 /**
- * Immediately executes order under current market conditions.
+ * Immediately executes the order at best available price.
  */
 @Service("market")
 @Slf4j
 public class MarketOrderExecutor extends AbstractOrderExecutor implements OrderExecutor {
-    private static final int MAX_RETRIES = 3;
-
+    private static final int MAX_RETRIES = 5;
     private final PortfolioService portfolioService;
 
     public MarketOrderExecutor(Executor executor, OrderService orderService, TransactionService transactionService,
@@ -42,82 +44,91 @@ public class MarketOrderExecutor extends AbstractOrderExecutor implements OrderE
     protected CompletableFuture<Order> fulfillOrders(Order incomingOrder, List<Order> matchingOrders) {
         List<CompletableFuture<Void>> transactionFutures = new ArrayList<>();
         return CompletableFuture.supplyAsync(() -> {
-            int remainingQuantity = incomingOrder.getQuantity();
+                    int remainingQuantity = incomingOrder.getQuantity();
 
-            for (Order matchingOrder : matchingOrders) {
-                if (remainingQuantity > 0) {
-                    int matchedQuantity = Math.min(remainingQuantity, matchingOrder.getQuantity());
-                    remainingQuantity -= matchedQuantity;
+                    for (Order matchingOrder : matchingOrders) {
+                        if (remainingQuantity > 0) {
+                            int matchedQuantity = Math.min(remainingQuantity, matchingOrder.getQuantity());
+                            remainingQuantity -= matchedQuantity;
 
-                    // Step 5: Execute the transaction asynchronously and track the transaction future
-                    transactionFutures.add(executeOrderTransaction(incomingOrder, matchingOrder, matchedQuantity));
-                }
-            }
+                            // exec the transaction asynchronously and track the transaction future
+                            transactionFutures.add(executeOrderTransaction(incomingOrder, matchingOrder, matchedQuantity));
+                        }
+                    }
 
-            return remainingQuantity;
-        }, executor).thenComposeAsync(remainingQuantity ->
-                CompletableFuture.allOf(transactionFutures.toArray(new CompletableFuture[0]))
-                        .thenApplyAsync(v -> {
-                            incomingOrder.setRemainingQuantity(remainingQuantity);
-                            return incomingOrder;
-                        }));
+                    return remainingQuantity;
+                }, executor)
+                .thenComposeAsync(remainingQuantity ->
+                        allOf(transactionFutures.toArray(new CompletableFuture[0]))
+                                .thenApplyAsync(v -> {
+                                    incomingOrder.setRemainingQuantity(remainingQuantity);
+                                    return incomingOrder;
+                                }));
     }
 
     @Override
     @Transactional
     @Modifying
     protected CompletableFuture<Void> executeOrderTransaction(Order incomingOrder, Order matchingOrder, int matchedQuantity) {
-        return executeWithRetries(() -> adjustBalances(incomingOrder, matchingOrder, matchedQuantity)
-                        .thenAcceptAsync(v -> updateOrderQuantities(incomingOrder, matchingOrder, matchedQuantity), executor)
+        return executeWithRetries(MAX_RETRIES,
+                () -> updateFundsAndAssets(incomingOrder, matchingOrder, matchedQuantity)
                         .thenComposeAsync(v -> saveMatchedOrders(incomingOrder, matchingOrder), executor)
                         .thenApplyAsync(this::createTransactions, executor)
-                        .thenAcceptAsync(v -> log.info("All transactions executed successfully."), executor)
-                , MAX_RETRIES);
+                        .thenAcceptAsync(v -> log.info("All transactions executed successfully."), executor));
     }
 
-    private CompletableFuture<Void> executeWithRetries(Supplier<CompletableFuture<Void>> task, int retries) {
+    /**
+     * Will try to execute supplied task. If an OptimisticLockException occurs, will retry
+     * the same task MAX_RETRIES amount of times.
+     * Any other exception will be propagated.
+     *
+     * @param retries - number of retries for acquiring the needed DB locks.
+     * @param task    - current task to execute.
+     * @return Void
+     */
+    private CompletableFuture<Void> executeWithRetries(int retries, Supplier<CompletableFuture<Void>> task) {
         return task.get().exceptionallyComposeAsync(ex -> {
             if (ex.getCause() instanceof OptimisticLockException && retries > 0) {
                 log.error("Optimistic lock exception. Retrying... Remaining retries: {}", retries - 1);
-                return executeWithRetries(task, retries - 1);
+                return executeWithRetries(retries - 1, task);
             } else {
-                throw new RuntimeException("Exceeded retry limit for optimistic lock", ex);
+                log.error("Retry limit exceeded for order execution: ", ex);
+                throw new RetryLimitExceededException("Exceeded retry limit for executing order", ex);
             }
         });
     }
 
-    protected CompletableFuture<Void> adjustBalances(Order incomingOrder, Order matchingOrder, int matchedQuantity) {
-        return incomingOrder.getSide().equals(Side.BUY)
-                ? adjustWalletBalances(incomingOrder, matchingOrder, matchedQuantity)
-                : adjustWalletBalances(matchingOrder, incomingOrder, matchedQuantity);
-    }
-
-    private void updateOrderQuantities(Order incomingOrder, Order matchingOrder, int matchedQuantity) {
+    protected CompletableFuture<Void> updateFundsAndAssets(Order incomingOrder, Order matchingOrder, int matchedQuantity) {
         incomingOrder.setFilledQuantity(incomingOrder.getFilledQuantity() + matchedQuantity);
         matchingOrder.setFilledQuantity(matchingOrder.getFilledQuantity() + matchedQuantity);
-
         incomingOrder.setRemainingQuantity(incomingOrder.getRemainingQuantity() - matchedQuantity);
         matchingOrder.setRemainingQuantity(matchingOrder.getRemainingQuantity() - matchedQuantity);
+
+        return incomingOrder.getSide().equals(Side.BUY)
+                ? transferFundsAndAssets(incomingOrder, matchingOrder, matchedQuantity)
+                : transferFundsAndAssets(matchingOrder, incomingOrder, matchedQuantity);
     }
 
     private CompletableFuture<List<Order>> saveMatchedOrders(Order incoming, Order matching) {
-        List<Order> executedOrders = new ArrayList<>(List.of());
+        List<Order> matchedOrders = new ArrayList<>(List.of());
         return orderService.createOrder(incoming)
-                .thenComposeAsync(order -> {
-                    executedOrders.add(order);
-                    return orderService.createOrder(matching);
+                .thenComposeAsync(incomingOrder -> {
+                    matchedOrders.add(incomingOrder);
+                    return orderService.createOrder(matching); // TODO: should update the matching order
                 }, executor)
-                .thenApplyAsync(order -> {
-                    executedOrders.add(order);
-                    return executedOrders;
+                .thenApplyAsync(matchingOrder -> {
+                    matchedOrders.add(matchingOrder);
+                    return matchedOrders;
                 }, executor);
     }
 
-    private CompletableFuture<Void> createTransactions(List<Order> executedOrders) {
-        List<CompletableFuture<Transaction>> futureTransactions = executedOrders.stream()
+    private CompletableFuture<Void> createTransactions(List<Order> savedOrders) {
+        List<CompletableFuture<Transaction>> futureTransactions = savedOrders.stream()
                 .map(order -> {
-                    CompletableFuture<TransactionType> transactionTypeFuture = transactionService.getTransactionType(order.getSide().name());
-                    CompletableFuture<Portfolio> portfolioFuture = portfolioService.getPortfolioByAccountProductIsin(order.getWallet().getAccount(), order.getProduct());
+                    CompletableFuture<TransactionType> transactionTypeFuture =
+                            transactionService.getTransactionType(order.getSide().name());
+                    CompletableFuture<Portfolio> portfolioFuture =
+                            portfolioService.getPortfolioByAccountProductIsin(order.getWallet().getAccount(), order.getProduct());
 
                     return transactionTypeFuture.thenCombineAsync(portfolioFuture, (transactionType, portfolio) -> Transaction.builder()
                                     .order(order)
@@ -133,7 +144,7 @@ public class MarketOrderExecutor extends AbstractOrderExecutor implements OrderE
                 })
                 .toList();
 
-        return CompletableFuture.allOf(futureTransactions.toArray(new CompletableFuture[0]));
+        return allOf(futureTransactions.toArray(new CompletableFuture[0]));
     }
 
 }

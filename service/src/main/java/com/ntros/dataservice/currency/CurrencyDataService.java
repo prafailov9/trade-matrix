@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
+import static java.util.concurrent.CompletableFuture.supplyAsync;
+
 @Service
 @Transactional
 @Slf4j
@@ -36,7 +38,7 @@ public class CurrencyDataService implements CurrencyService {
 
     @Override
     public CompletableFuture<Currency> getCurrencyByCodeAsync(String code) {
-        return CompletableFuture.supplyAsync(() -> currencyRepository.findByCurrencyCode(code)
+        return supplyAsync(() -> currencyRepository.findByCurrencyCode(code)
                 .orElseThrow(() -> new CurrencyNotFoundException(String.format("Could not find currency with code:%s", code))));
     }
 

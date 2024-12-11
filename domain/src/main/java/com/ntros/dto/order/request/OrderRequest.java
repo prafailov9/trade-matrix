@@ -1,5 +1,6 @@
 package com.ntros.dto.order.request;
 
+import com.ntros.validation.OrderTypeSupported;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -7,8 +8,9 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
+@OrderTypeSupported
 public abstract class OrderRequest {
-    private String orderType;
+    private String orderType; // buy or sell
 
     @Pattern(regexp = "\\d+", message = "AN must be a number.")
     @Size(min = 8, max = 12, message = "Invalid AN: must be 8 - 13 digits.")

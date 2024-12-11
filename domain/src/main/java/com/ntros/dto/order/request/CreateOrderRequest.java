@@ -14,7 +14,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class CreateOrderRequest extends OrderRequest {
 
-
     @NotNull
     @Min(value = 1, message = "price of order cannot be less than 1.")
     protected BigDecimal price;

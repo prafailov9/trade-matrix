@@ -1,4 +1,4 @@
-package com.ntros.processor.order.initialization;
+package com.ntros.processor.order.initialization.create;
 
 
 import com.ntros.converter.order.OrderConverter;
@@ -27,10 +27,8 @@ public abstract class AbstractCreateOrderInitializer implements CreateOrderIniti
     protected OrderService orderService;
     @Autowired
     protected WalletService walletService;
-
     @Autowired
     protected OrderConverter orderConverter;
-
     @Autowired
     protected ProductService productService;
 
@@ -39,10 +37,10 @@ public abstract class AbstractCreateOrderInitializer implements CreateOrderIniti
         return orderService.createOrder(openOrder)
                 .thenComposeAsync(order -> orderService.updateOrderStatus(order, CurrentOrderStatus.OPEN))
                 .thenApplyAsync(orderStatus -> {
-                    openOrder.setOrderStatusList(List.of(orderStatus));
+                    openOrder.setOrderStatuses(List.of(orderStatus));
                     log.info("Order initialized: {} for [product = {}, currency = {}, account = {}] with status: {}",
                             openOrder,
-                            openOrder.getProduct().getProductName(),
+                            openOrder.getProduct(),
                             openOrder.getWallet().getCurrency(),
                             openOrder.getWallet().getAccount().getAccountNumber(),
                             orderStatus.getCurrentStatus());

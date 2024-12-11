@@ -2,6 +2,7 @@ package com.ntros.dataservice.position;
 
 import com.ntros.model.Position;
 import com.ntros.model.account.Account;
+import com.ntros.model.order.Side;
 import com.ntros.model.product.Product;
 
 import java.util.concurrent.CompletableFuture;
@@ -16,6 +17,6 @@ public interface PositionService {
 
     CompletableFuture<Boolean> compareCurrentProductQuantity(String accountNumber, String isin, int orderQuantity);
 
-    CompletableFuture<Void> updatePosition(Account account, Product product, int matchedOrderQuantity);
+    CompletableFuture<Void> updatePosition(Account account, Product product, int matchedOrderQuantity, Side side);
 
 }

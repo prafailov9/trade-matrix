@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static com.ntros.dataservice.currency.CurrencyUtils.getScale;
+import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 @Service
 @Transactional
@@ -45,33 +46,30 @@ public class AccountDataService implements AccountService {
 
     @Override
     public CompletableFuture<Account> getAccount(int accountId) {
-        return CompletableFuture
-                .supplyAsync(() -> accountRepository.findById(accountId)
+        return supplyAsync(() -> accountRepository.findById(accountId)
                         .orElseThrow(() -> new AccountNotFoundException("Account not found for id: " + accountId)));
     }
 
     @Override
     public CompletableFuture<Account> getAccountByAccountNumber(String accountNumber) {
-        return CompletableFuture
-                .supplyAsync(() -> accountRepository.findByAccountNumber(accountNumber)
+        return supplyAsync(() -> accountRepository.findByAccountNumber(accountNumber)
                         .orElseThrow(() -> new AccountNotFoundException("Account not found for AN: " + accountNumber)));
     }
 
     @Override
     public CompletableFuture<List<Account>> getAllAccounts() {
-        return CompletableFuture.supplyAsync(accountRepository::findAll);
+        return supplyAsync(accountRepository::findAll);
     }
 
     @Override
     public CompletableFuture<List<Account>> getAllAccountsWalletCount(int walletCount) {
-        return CompletableFuture.supplyAsync(() -> accountRepository.findAllByWalletCount(walletCount));
+        return supplyAsync(() -> accountRepository.findAllByWalletCount(walletCount));
 
     }
 
     @Override
     public CompletableFuture<List<List<Account>>> getAllAccountsByWalletCountInRange(int origin, int bound) {
-        return CompletableFuture
-                .supplyAsync(() -> {
+        return supplyAsync(() -> {
                     int realBound = bound;
                     List<Wallet> wallets = walletRepository.findAll();
                     if (!CollectionUtils.isEmpty(wallets)) {
@@ -92,8 +90,7 @@ public class AccountDataService implements AccountService {
 
     @Override
     public CompletableFuture<Account> createAccount(Account account) {
-        return CompletableFuture
-                .supplyAsync(() -> {
+        return supplyAsync(() -> {
                     try {
                         return accountRepository.save(account);
                     } catch (DataIntegrityViolationException ex) {
@@ -160,8 +157,7 @@ public class AccountDataService implements AccountService {
     @Modifying
     @Transactional
     public CompletableFuture<Account> calculateTotalBalanceForAccount(final Account account) {
-        return CompletableFuture
-                .supplyAsync(() -> updateTotalBalance(account))
+        return supplyAsync(() -> updateTotalBalance(account))
                 .thenComposeAsync(this::createAccount);
     }
 

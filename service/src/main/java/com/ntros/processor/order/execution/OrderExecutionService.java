@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import static java.util.concurrent.CompletableFuture.supplyAsync;
+
 @Service
 @Slf4j
 public class OrderExecutionService implements OrderExecution {
@@ -26,13 +28,13 @@ public class OrderExecutionService implements OrderExecution {
     }
 
     public CompletableFuture<Order> executeOrder(Order order) {
-        return obtainExecutor(order.getOrderType().getOrderTypeName().toLowerCase())
+        return getOrderExecutor(order.getOrderType().getOrderTypeName().toLowerCase())
                 .thenComposeAsync(orderExecutor ->
                         orderExecutor.execute(order), executor);
     }
 
-    private CompletableFuture<OrderExecutor> obtainExecutor(String orderType) {
-        return CompletableFuture.supplyAsync(() -> {
+    private CompletableFuture<OrderExecutor> getOrderExecutor(String orderType) {
+        return supplyAsync(() -> {
             OrderExecutor orderExecutor = orderExecutors.get(orderType);
             if (orderExecutor == null) {
                 throw new IllegalArgumentException("Unknown order type: " + orderType);

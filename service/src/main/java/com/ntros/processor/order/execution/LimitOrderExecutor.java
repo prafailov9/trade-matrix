@@ -14,10 +14,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 /**
- * A limit order executes when the market price
- * is equal to or better than the limit price set by the trader.
- * For a buy order, the market price must be at or below the limit price;
- * for a sell order, the market price must be at or above the limit price.
+ * Will execute a Buy or Sell order at a set limit price or better.
+ * BUY order is executed when - limit price >= market price;
+ * SELL order is executed when - limit price <= market price;
  */
 @Service("limit")
 @Slf4j
@@ -46,7 +45,6 @@ public class LimitOrderExecutor extends AbstractOrderExecutor implements OrderEx
                     // TODO: Add logic to adjust wallet balances, update matchingOrder quantity, etc.
                 }
             }
-
             incomingOrder.setQuantity(remainingQuantity);  // Update the remaining unfilled quantity
             return incomingOrder;
         }, executor);
@@ -58,13 +56,14 @@ public class LimitOrderExecutor extends AbstractOrderExecutor implements OrderEx
     }
 
 
+    /**
+     *  For Buy Orders, market price should be <= limit price
+     *  For Sell Orders, market price should be >= limit price
+     */
     private boolean isLimitConditionMet(Order incomingOrder, Order matchingOrder) {
-        // For Buy Orders, market price should be <= limit price
-        // For Sell Orders, market price should be >= limit price
-        if (incomingOrder.getSide().equals(Side.BUY)) {
-            return matchingOrder.getPrice().compareTo(incomingOrder.getPrice()) <= 0;
-        } else {
-            return matchingOrder.getPrice().compareTo(incomingOrder.getPrice()) >= 0;
-        }
+        return incomingOrder.getSide().equals(Side.BUY)
+                ? matchingOrder.getPrice().compareTo(incomingOrder.getPrice()) <= 0
+                : matchingOrder.getPrice().compareTo(incomingOrder.getPrice()) >= 0;
+
     }
 }
