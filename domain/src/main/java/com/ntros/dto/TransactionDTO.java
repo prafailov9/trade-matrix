@@ -1,7 +1,8 @@
 package com.ntros.dto;
 
-import com.ntros.model.transaction.TransactionType;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
@@ -10,12 +11,19 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 public class TransactionDTO {
 
-    private TransactionType transactionType;
-    private String sender;
-    private String receiver;
-    private BigDecimal amount;
-    private BigDecimal fees;
+    private String transactionType;
+    private String accNum;
+    private String accName;
+    private String prodName;
+    private String prodIsin;
+    private String marketCode;
+    private String txGenName; // generated name for transaction: accountNumber:accountName-marketCode_productName
+
+    private BigDecimal price;
+    private int quantity;
     private String currency;
     private String description;
+    private String date;
+
 
 }

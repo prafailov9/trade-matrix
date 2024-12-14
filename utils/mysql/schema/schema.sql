@@ -182,7 +182,7 @@ CREATE TABLE IF NOT EXISTS product (
     region_id INT NOT NULL, --  to geographic assets distribution(US stocks vs international stocks)
 
     product_name VARCHAR(100) NOT NULL,
-    isin VARCHAR(12) NOT NULL,
+    isin VARCHAR(12) NOT NULL, -- global identifier
 
     -- volatility
     standard_deviation DECIMAL(10, 6), -- measure an asset's(product) volatility
@@ -201,7 +201,7 @@ CREATE INDEX idx_product_standard_deviation ON product(standard_deviation);
 CREATE INDEX idx_product_volatile_coefficient ON product(volatile_coefficient);
 
 
--- junction table for market and product relationship.
+-- junction table for market-product relation.
 CREATE TABLE IF NOT EXISTS market_product (
     market_product_id INT PRIMARY KEY AUTO_INCREMENT,
     market_id INT NOT NULL,
@@ -300,7 +300,7 @@ CREATE TABLE IF NOT EXISTS `order` (
     order_id INT PRIMARY KEY AUTO_INCREMENT,
     order_type_id INT NOT NULL,
     wallet_id INT NOT NULL,
-    product_id INT NOT NULL,
+    market_product_id INT NOT NULL,
     quantity INT NOT NULL,
     side ENUM('BUY', 'SELL'),
     price DECIMAL(10, 2) NOT NULL,
@@ -311,10 +311,10 @@ CREATE TABLE IF NOT EXISTS `order` (
 
     FOREIGN KEY (order_type_id) REFERENCES order_type(order_type_id),
     FOREIGN KEY (wallet_id) REFERENCES wallet(wallet_id),
-    FOREIGN KEY (product_id) REFERENCES product(product_id)
+    FOREIGN KEY (market_product_id) REFERENCES market_product(market_product_id)
 );
 CREATE INDEX idx_order_wallet_id ON `order`(wallet_id);
-CREATE INDEX idx_order_product_id ON `order`(product_id);
+CREATE INDEX idx_order_market_product_id ON `order`(market_product_id);
 CREATE INDEX idx_order_placed_at ON `order`(placed_at);
 
 
@@ -347,7 +347,7 @@ CREATE TABLE IF NOT EXISTS `transaction` (
     transaction_type_id INT NOT NULL,
     wallet_id INT,
     portfolio_id INT,
-    product_id INT,
+    market_product_id INT,
     order_id INT,
     quantity INT NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
@@ -357,7 +357,7 @@ CREATE TABLE IF NOT EXISTS `transaction` (
     FOREIGN KEY (transaction_type_id) REFERENCES transaction_type(transaction_type_id),
     FOREIGN KEY (wallet_id) REFERENCES wallet(wallet_id),
     FOREIGN KEY (portfolio_id) REFERENCES portfolio(portfolio_id),
-    FOREIGN KEY (product_id) REFERENCES product(product_id),
+    FOREIGN KEY (market_product_id) REFERENCES market_product(market_product_id),
     FOREIGN KEY (order_id) REFERENCES `order`(order_id)
 );
 
@@ -365,7 +365,7 @@ CREATE TABLE IF NOT EXISTS `transaction` (
 CREATE INDEX idx_transaction_type ON `transaction`(transaction_type_id);
 CREATE INDEX idx_transaction_wallet_id ON `transaction`(wallet_id);
 CREATE INDEX idx_transaction_portfolio_id ON `transaction`(portfolio_id);
-CREATE INDEX idx_transaction_product_id ON `transaction`(product_id);
+CREATE INDEX idx_transaction_market_product_id ON `transaction`(market_product_id);
 CREATE INDEX idx_transaction_order_id ON `transaction`(order_id);
 CREATE INDEX idx_transaction_date ON `transaction`(transaction_date); -- for faster time-based lookups
 

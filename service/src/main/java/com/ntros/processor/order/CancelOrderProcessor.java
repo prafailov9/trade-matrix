@@ -1,6 +1,6 @@
 package com.ntros.processor.order;
 
-import com.ntros.dataservice.order.OrderService;
+import com.ntros.service.order.OrderService;
 import com.ntros.dto.order.request.CancelOrderRequest;
 import com.ntros.dto.order.response.CancelOrderResponse;
 import com.ntros.dto.order.response.Status;

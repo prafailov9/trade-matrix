@@ -2,7 +2,7 @@ package com.ntros.controller.order;
 
 import com.ntros.controller.AbstractApiController;
 import com.ntros.converter.order.OrderConverter;
-import com.ntros.dataservice.order.OrderService;
+import com.ntros.service.order.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

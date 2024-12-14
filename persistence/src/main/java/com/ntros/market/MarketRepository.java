@@ -6,19 +6,16 @@ import com.ntros.model.product.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.Optional;
 
+@Repository
 public interface MarketRepository extends JpaRepository<Market, Integer> {
 
 
-    @Query("SELECT mp.currentPrice From MarketProduct mp " +
-            "JOIN mp.market m " +
-            "JOIN mp.product p " +
-            "WHERE mp.product = :product AND m.currency = :currency")
-    Optional<BigDecimal> findMarketPriceForProductCurrency(@Param("product") Product product,
-                                                           @Param("currency") Currency currency);
-
+    @Query("SELECT m FROM Market m WHERE m.marketCode = :marketCode")
+    Optional<Market> findByMarketCode(@Param("marketCode") String marketCode);
 
 }

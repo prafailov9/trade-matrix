@@ -11,6 +11,6 @@ public class OrderTypeSupportedValidator implements ConstraintValidator<OrderTyp
 
     @Override
     public boolean isValid(OrderRequest orderRequest, ConstraintValidatorContext context) {
-        return SUPPORTED_ORDER_TYPES.stream().anyMatch(orderType -> orderType.equals(orderRequest.getOrderType()));
+        return SUPPORTED_ORDER_TYPES.stream().anyMatch(orderType -> orderType.equalsIgnoreCase(orderRequest.getOrderType()));
     }
 }

@@ -1,6 +1,6 @@
 package com.ntros.model.order;
 
-import com.ntros.model.product.Product;
+import com.ntros.model.product.MarketProduct;
 import com.ntros.model.wallet.Wallet;
 import jakarta.persistence.*;
 import lombok.*;
@@ -14,7 +14,7 @@ import java.util.List;
 @Data
 @Builder
 @EqualsAndHashCode
-@ToString(exclude = {"wallet", "product", "orderStatusList"})
+@ToString(exclude = {"wallet", "product", "orderStatuses"})
 @RequiredArgsConstructor
 @AllArgsConstructor
 public class Order {
@@ -31,8 +31,8 @@ public class Order {
     private Wallet wallet;
 
     @ManyToOne
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @JoinColumn(name = "market_product_id", nullable = false)
+    private MarketProduct marketProduct;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.REMOVE)
     private List<OrderStatus> orderStatuses;

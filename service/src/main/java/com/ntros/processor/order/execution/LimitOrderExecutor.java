@@ -1,11 +1,11 @@
 package com.ntros.processor.order.execution;
 
-import com.ntros.dataservice.order.OrderService;
-import com.ntros.dataservice.position.PositionService;
-import com.ntros.dataservice.wallet.WalletService;
+import com.ntros.service.order.OrderService;
+import com.ntros.service.position.PositionService;
+import com.ntros.service.wallet.WalletService;
 import com.ntros.model.order.Order;
 import com.ntros.model.order.Side;
-import com.ntros.processor.transaction.TransactionService;
+import com.ntros.service.transaction.TransactionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 

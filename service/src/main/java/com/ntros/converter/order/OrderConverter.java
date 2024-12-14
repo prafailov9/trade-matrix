@@ -23,7 +23,7 @@ public class OrderConverter implements Converter<CreateOrderRequest, Order> {
         createOrderRequest.setCurrencyCode(model.getWallet().getCurrency().getCurrencyCode());
         createOrderRequest.setFilledQuantity(model.getFilledQuantity());
         createOrderRequest.setRemainingQuantity(model.getRemainingQuantity());
-        createOrderRequest.setProductIsin(model.getProduct().getIsin());
+        createOrderRequest.setProductIsin(model.getMarketProduct().getProduct().getIsin());
         createOrderRequest.setTransactionType(model.getSide().name());
 
         return createOrderRequest;

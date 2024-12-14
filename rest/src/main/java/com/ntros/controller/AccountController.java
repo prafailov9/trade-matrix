@@ -1,7 +1,7 @@
 package com.ntros.controller;
 
 import com.ntros.converter.AccountConverter;
-import com.ntros.dataservice.account.AccountService;
+import com.ntros.service.account.AccountService;
 import jakarta.validation.constraints.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

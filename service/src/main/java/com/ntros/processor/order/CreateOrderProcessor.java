@@ -1,7 +1,7 @@
 package com.ntros.processor.order;
 
 import com.ntros.converter.order.OrderConverter;
-import com.ntros.dataservice.order.OrderService;
+import com.ntros.service.order.OrderService;
 import com.ntros.dto.order.request.CreateOrderRequest;
 import com.ntros.dto.order.response.CreateOrderResponse;
 import com.ntros.dto.order.response.Status;

@@ -22,8 +22,7 @@ public class CreateOrderProcessorController extends AbstractOrderProcessorContro
     @PostMapping
     @ResponseBody
     public CompletableFuture<ResponseEntity<?>> processOrder(@RequestBody @Validated CreateOrderRequest createOrderRequest) {
-        return process(createOrderRequest)
-                .handleAsync(this::handleResponseAsync, executor);
+        return process(createOrderRequest);
     }
 
 }

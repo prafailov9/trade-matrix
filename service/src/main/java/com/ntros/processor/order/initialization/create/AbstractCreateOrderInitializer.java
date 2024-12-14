@@ -2,9 +2,10 @@ package com.ntros.processor.order.initialization.create;
 
 
 import com.ntros.converter.order.OrderConverter;
-import com.ntros.dataservice.order.OrderService;
-import com.ntros.dataservice.product.ProductService;
-import com.ntros.dataservice.wallet.WalletService;
+import com.ntros.service.marketproduct.MarketProductService;
+import com.ntros.service.order.OrderService;
+import com.ntros.service.product.ProductService;
+import com.ntros.service.wallet.WalletService;
 import com.ntros.model.order.CurrentOrderStatus;
 import com.ntros.model.order.Order;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,9 @@ public abstract class AbstractCreateOrderInitializer implements CreateOrderIniti
     @Autowired
     protected ProductService productService;
 
+    @Autowired
+    protected MarketProductService marketProductService;
+
 
     protected CompletableFuture<Order> placeOpenOrderAndSetOpenStatus(Order openOrder) {
         return orderService.createOrder(openOrder)
@@ -40,7 +44,7 @@ public abstract class AbstractCreateOrderInitializer implements CreateOrderIniti
                     openOrder.setOrderStatuses(List.of(orderStatus));
                     log.info("Order initialized: {} for [product = {}, currency = {}, account = {}] with status: {}",
                             openOrder,
-                            openOrder.getProduct(),
+                            openOrder.getMarketProduct(),
                             openOrder.getWallet().getCurrency(),
                             openOrder.getWallet().getAccount().getAccountNumber(),
                             orderStatus.getCurrentStatus());

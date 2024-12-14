@@ -1,16 +1,16 @@
 package com.ntros.processor.order.execution;
 
-import com.ntros.dataservice.order.OrderService;
-import com.ntros.dataservice.portfolio.PortfolioService;
-import com.ntros.dataservice.position.PositionService;
-import com.ntros.dataservice.wallet.WalletService;
+import com.ntros.service.order.OrderService;
+import com.ntros.service.portfolio.PortfolioService;
+import com.ntros.service.position.PositionService;
+import com.ntros.service.wallet.WalletService;
 import com.ntros.exception.RetryLimitExceededException;
 import com.ntros.model.order.Order;
 import com.ntros.model.order.Side;
 import com.ntros.model.portfolio.Portfolio;
 import com.ntros.model.transaction.Transaction;
 import com.ntros.model.transaction.TransactionType;
-import com.ntros.processor.transaction.TransactionService;
+import com.ntros.service.transaction.TransactionService;
 import jakarta.persistence.OptimisticLockException;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -128,11 +128,11 @@ public class MarketOrderExecutor extends AbstractOrderExecutor implements OrderE
                     CompletableFuture<TransactionType> transactionTypeFuture =
                             transactionService.getTransactionType(order.getSide().name());
                     CompletableFuture<Portfolio> portfolioFuture =
-                            portfolioService.getPortfolioByAccountProductIsin(order.getWallet().getAccount(), order.getProduct());
+                            portfolioService.getPortfolioByAccountProductIsin(order.getWallet().getAccount(), order.getMarketProduct().getProduct());
 
                     return transactionTypeFuture.thenCombineAsync(portfolioFuture, (transactionType, portfolio) -> Transaction.builder()
                                     .order(order)
-                                    .product(order.getProduct())
+                                    .marketProduct(order.getMarketProduct())
                                     .wallet(order.getWallet())
                                     .currency(order.getWallet().getCurrency().getCurrencyCode())
                                     .price(order.getPrice())

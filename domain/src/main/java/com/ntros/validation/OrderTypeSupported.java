@@ -12,7 +12,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 @Target({ TYPE })
 @Retention(RUNTIME)
-@Constraint(validatedBy = OriginLessThanBoundValidator.class)
+@Constraint(validatedBy = OrderTypeSupportedValidator.class)
 @Documented
 public @interface OrderTypeSupported {
     String message() default "Given order type not supported";

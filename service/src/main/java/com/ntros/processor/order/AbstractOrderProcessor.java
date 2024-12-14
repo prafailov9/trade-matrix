@@ -1,6 +1,6 @@
 package com.ntros.processor.order;
 
-import com.ntros.dataservice.order.OrderService;
+import com.ntros.service.order.OrderService;
 import com.ntros.dto.order.request.OrderRequest;
 import com.ntros.dto.order.response.OrderResponse;
 import com.ntros.dto.order.response.Status;
@@ -30,6 +30,7 @@ public abstract class AbstractOrderProcessor<T extends OrderRequest, R extends O
     }
 
     /**
+     * Successfully placed(initialized) orders should be returned immediately. OrderFulfillmentShould happen in the background.
      * Process incoming order request.
      * - Initialize order, perform validations. Once initialized, it will be placed with OPEN status.
      * - After that, order fulfillment begins. It will be fulfilled based on its directive(BUY/SELL)
@@ -37,6 +38,8 @@ public abstract class AbstractOrderProcessor<T extends OrderRequest, R extends O
      * - Build response
      * @param orderRequest - incoming order
      * @return Order Response
+     *
+     * TODO: Detach init and processing. After Init, a response should be returned immediately to the user.
      */
     @Override
     public CompletableFuture<R> processOrder(T orderRequest) {

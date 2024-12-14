@@ -1,12 +1,12 @@
 package com.ntros.processor.order.execution;
 
-import com.ntros.dataservice.order.OrderService;
-import com.ntros.dataservice.position.PositionService;
-import com.ntros.dataservice.wallet.WalletService;
+import com.ntros.service.order.OrderService;
+import com.ntros.service.position.PositionService;
+import com.ntros.service.wallet.WalletService;
 import com.ntros.exception.BalanceAdjustmentException;
 import com.ntros.exception.OrderProcessingException;
 import com.ntros.model.order.Order;
-import com.ntros.processor.transaction.TransactionService;
+import com.ntros.service.transaction.TransactionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -71,14 +71,14 @@ public abstract class AbstractOrderExecutor implements OrderExecutor {
         CompletableFuture<Void> sellerBalanceUpdate = walletService.updateBalance(sellOrder.getWallet().getWalletId(), totalCost);
 
         CompletableFuture<Void> buyerPositionUpdate = positionService.updatePosition(
-                buyOrder.getWallet().getAccount(), buyOrder.getProduct(), matchedQuantity, buyOrder.getSide());
+                buyOrder.getWallet().getAccount(), buyOrder.getMarketProduct().getProduct(), matchedQuantity, buyOrder.getSide());
         CompletableFuture<Void> sellerPositionUpdate = positionService.updatePosition(
-                sellOrder.getWallet().getAccount(), sellOrder.getProduct(), matchedQuantity, sellOrder.getSide());
+                sellOrder.getWallet().getAccount(), sellOrder.getMarketProduct().getProduct(), matchedQuantity, sellOrder.getSide());
 
         return CompletableFuture.allOf(buyerBalanceUpdate, sellerBalanceUpdate, sellerPositionUpdate, buyerPositionUpdate)
                 .thenRunAsync(
                         () -> log.info("Successfully updated balances. Buyer debited: {}, Seller debited shares: {}",
-                                        totalCost, matchedQuantity), executor)
+                                totalCost, matchedQuantity), executor)
                 .exceptionally(ex -> {
                     log.error("Failed to adjust wallet or position balances: {}", ex.getMessage());
                     throw new BalanceAdjustmentException("Error adjusting balances", ex);

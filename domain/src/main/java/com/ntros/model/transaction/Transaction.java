@@ -2,7 +2,7 @@ package com.ntros.model.transaction;
 
 import com.ntros.model.order.Order;
 import com.ntros.model.portfolio.Portfolio;
-import com.ntros.model.product.Product;
+import com.ntros.model.product.MarketProduct;
 import com.ntros.model.wallet.Wallet;
 import jakarta.persistence.*;
 import lombok.*;
@@ -34,8 +34,8 @@ public class Transaction {
     private Portfolio portfolio;
 
     @ManyToOne
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @JoinColumn(name = "market_product_id", nullable = false)
+    private MarketProduct marketProduct;
 
     @ManyToOne
     @JoinColumn(name = "order_id", nullable = false)

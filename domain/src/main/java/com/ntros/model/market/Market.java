@@ -38,6 +38,6 @@ public class Market {
     private OffsetDateTime createdDate;
     private OffsetDateTime updatedDate;
 
-    @OneToMany(mappedBy = "market", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<MarketProduct> productsForMarket;
+//    @OneToMany(mappedBy = "market", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<MarketProduct> productsForMarket;
 }
