@@ -14,7 +14,7 @@ import java.util.List;
 @Data
 @Builder
 @EqualsAndHashCode
-@ToString(exclude = {"wallet", "product", "orderStatuses"})
+@ToString(exclude = {"wallet", "marketProduct", "orderStatuses"})
 @RequiredArgsConstructor
 @AllArgsConstructor
 public class Order {

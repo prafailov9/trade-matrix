@@ -2,9 +2,13 @@ package com.ntros.processor.order.initialization.create;
 
 
 import com.ntros.converter.order.OrderProcessingConverter;
+import com.ntros.dto.order.request.CreateOrderRequest;
 import com.ntros.model.order.CurrentOrderStatus;
 import com.ntros.model.order.Order;
 import com.ntros.model.order.OrderStatus;
+import com.ntros.model.order.OrderType;
+import com.ntros.model.product.MarketProduct;
+import com.ntros.model.wallet.Wallet;
 import com.ntros.service.marketproduct.MarketProductService;
 import com.ntros.service.order.OrderService;
 import com.ntros.service.wallet.WalletService;
@@ -37,9 +41,30 @@ public abstract class AbstractCreateOrderInitializer implements CreateOrderIniti
     @Autowired
     protected MarketProductService marketProductService;
 
+    @Override
+    public CompletableFuture<Order> initialize(CreateOrderRequest request) {
+        return supplyAsync(() -> {
+            Order.OrderBuilder orderBuilder = Order.builder();
+            log.info("Initializing order: {}", request);
+            validateOrderRequest(request);
+
+            Wallet wallet = walletService.getWalletByCurrencyCodeAccountNumber(request.getCurrencyCode(), request.getAccountNumber());
+            orderBuilder.wallet(wallet);
+            MarketProduct marketProduct = marketProductService.getMarketProductByIsinMarketCode(request.getProductIsin(), request.getMarketCode());
+            orderBuilder.marketProduct(marketProduct);
+            OrderType orderType = orderService.getOrderType(request.getOrderType());
+            orderBuilder.orderType(orderType);
+
+            Order initOrder = createOpenOrderAndStatus(orderProcessingConverter.toModel(request, orderBuilder));
+            log.info("Order Initialized: {}", initOrder);
+            return initOrder;
+        }, executor);
+    }
+
+    protected abstract void validateOrderRequest(CreateOrderRequest request);
 
     @Transactional
-    protected Order placeOpenOrderAndSetOpenStatus(Order openOrder) {
+    protected Order createOpenOrderAndStatus(Order openOrder) {
         Order createdOrder = orderService.createOrder(openOrder);
         OrderStatus orderStatus = orderService.updateOrderStatus(createdOrder, CurrentOrderStatus.OPEN);
         createdOrder.setOrderStatuses(List.of(orderStatus));

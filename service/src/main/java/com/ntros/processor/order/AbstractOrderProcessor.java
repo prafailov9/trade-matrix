@@ -45,10 +45,10 @@ public abstract class AbstractOrderProcessor<T extends OrderRequest, R extends O
     public CompletableFuture<R> processOrder(T orderRequest) {
         return initialize(orderRequest)
                 .thenComposeAsync(this::process, executor)
-                .thenComposeAsync(processedOrder -> buildOrderResponse(processedOrder, Status.SUCCESS))
+                .thenComposeAsync(this::buildOrderSuccessResponse, executor)
                 .exceptionally(ex -> {
-                    log.error("Failed to process order {}. Message: {}", orderRequest, ex.getMessage());
-                    throw new OrderProcessingException(ex.getMessage(), ex.getCause());
+                    log.error("Failed to process order {}. Error:", orderRequest, ex.getCause());
+                    return buildOrderFailedResponse(ex.getCause());
                 });
     }
 
@@ -56,7 +56,9 @@ public abstract class AbstractOrderProcessor<T extends OrderRequest, R extends O
 
     protected abstract CompletableFuture<Order> process(Order order);
 
-    protected abstract CompletableFuture<R> buildOrderResponse(Order order, Status status);
+    protected abstract CompletableFuture<R> buildOrderSuccessResponse(Order order);
+
+    protected abstract R buildOrderFailedResponse(Throwable ex);
 
 
 }

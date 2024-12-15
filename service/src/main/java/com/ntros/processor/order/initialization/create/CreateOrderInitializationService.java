@@ -18,21 +18,18 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class CreateOrderInitializationService implements CreateOrderInitialization {
 
-
     private final Map<String, CreateOrderInitializer> createOrderInitializers;
-
 
     @Autowired
     public CreateOrderInitializationService(Map<String, CreateOrderInitializer> createOrderInitializers) {
         this.createOrderInitializers = createOrderInitializers;
     }
 
-
     /**
-     * Instantiates an initializer service object based on the order's transaction type(directive).
+     * Creates an initializer service object based on the order's transaction type.
      * Matches the transactionType name to the initializer service's name(BUY/SELL)
      * @param createOrderRequest - order to initialize
-     * @return - initialized order domain object
+     * @return - initialized order object
      */
     @Override
     @Transactional

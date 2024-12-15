@@ -1,7 +1,6 @@
 package com.ntros.processor.order;
 
 import com.ntros.converter.order.OrderDataConverter;
-import com.ntros.converter.order.OrderProcessingConverter;
 import com.ntros.service.order.OrderService;
 import com.ntros.dto.order.request.CreateOrderRequest;
 import com.ntros.dto.order.response.CreateOrderResponse;
@@ -18,12 +17,6 @@ import java.util.concurrent.Executor;
 
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
-/**
- * Order Submission Workflow:
- * - when a user places an order:
- * - validate before saving:
- * - Buy order: ensure user has sufficient funds
- */
 @Slf4j
 @Service
 public class CreateOrderProcessor extends AbstractOrderProcessor<CreateOrderRequest, CreateOrderResponse> {
@@ -56,15 +49,22 @@ public class CreateOrderProcessor extends AbstractOrderProcessor<CreateOrderRequ
         return orderExecution.executeOrder(order);
     }
 
-
     @Override
-    protected CompletableFuture<CreateOrderResponse> buildOrderResponse(Order order, Status status) {
+    protected CompletableFuture<CreateOrderResponse> buildOrderSuccessResponse(Order order) {
         return supplyAsync(() -> {
             CreateOrderResponse createOrderResponse = new CreateOrderResponse();
-            createOrderResponse.setStatus(status);
+            createOrderResponse.setStatus(Status.SUCCESS);
             createOrderResponse.setOrderDTO(orderDataConverter.toDTO(order));
             return createOrderResponse;
         }, executor);
+    }
+
+    @Override
+    protected CreateOrderResponse buildOrderFailedResponse(Throwable ex) {
+        CreateOrderResponse createOrderResponse = new CreateOrderResponse();
+        createOrderResponse.setStatus(Status.FAILURE);
+        createOrderResponse.setMessage(ex.getMessage());
+        return createOrderResponse;
     }
 
 }

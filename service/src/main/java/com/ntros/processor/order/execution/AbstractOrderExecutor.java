@@ -114,7 +114,7 @@ public abstract class AbstractOrderExecutor implements OrderExecutor {
                             .wallet(order.getWallet())
                             .currency(order.getWallet().getCurrency().getCurrencyCode())
                             .price(order.getPrice())
-                            .quantity(order.getQuantity())
+                            .quantity(order.getFilledQuantity())
                             .transactionType(transactionType)
                             .portfolio(portfolio)
                             .transactionDate(OffsetDateTime.now())
@@ -130,7 +130,7 @@ public abstract class AbstractOrderExecutor implements OrderExecutor {
         BigDecimal orderPrice = sellOrder.getPrice();
         BigDecimal totalCost = orderPrice.multiply(BigDecimal.valueOf(matchedQuantity));
 
-        log.info("[IN AbstractOrderExecutor.transferFundsAndAssets()]\n totalCost:{}, buyOrder:{}, sellOrder:{}", totalCost, buyOrder, sellOrder);
+        log.info("totalCost:{}, buyOrder:{}, sellOrder:{}", totalCost, buyOrder, sellOrder);
         // update wallets for both orders
         buyOrder.getWallet().setBalance(buyOrder.getWallet().getBalance().subtract(totalCost));
         sellOrder.getWallet().setBalance(sellOrder.getWallet().getBalance().add(totalCost));

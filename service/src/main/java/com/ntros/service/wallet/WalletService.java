@@ -11,10 +11,8 @@ import java.util.concurrent.CompletableFuture;
 public interface WalletService {
 
     CompletableFuture<Wallet> getWallet(final int walletId);
-
     CompletableFuture<Wallet> getWalletByCurrencyCodeAccountNumberAsync(final String currencyCode, final String accountNumber);
     Wallet getWalletByCurrencyCodeAccountNumber(final String currencyCode, final String accountNumber);
-
     CompletableFuture<Wallet> getWalletByCurrencyNameAndAccountId(final String currencyName, final int accountId);
     CompletableFuture<Wallet> getWalletByCurrencyCodeAndAccountId(final String currencyCode, final int accountId);
 

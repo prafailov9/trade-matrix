@@ -5,7 +5,10 @@ import com.ntros.converter.order.OrderDataConverter;
 import com.ntros.service.order.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -28,17 +31,10 @@ public class OrderDataController extends AbstractApiController {
     @GetMapping("/all")
     @ResponseBody
     public CompletableFuture<ResponseEntity<?>> getAllOrders() {
-        return orderService.getAllOrdersAsync()
+        return orderService.getAllOrders()
                 .thenApplyAsync(orders -> orders.stream()
                         .map(orderDataConverter::toDTO)
                         .collect(Collectors.toList()), executor)
-                .handleAsync(this::handleResponseAsync, executor);
-    }
-
-    @DeleteMapping("/all")
-    @ResponseBody
-    public CompletableFuture<ResponseEntity<?>> deleteAllOrders() {
-        return orderService.deleteAllOrdersAsync()
                 .handleAsync(this::handleResponseAsync, executor);
     }
 }

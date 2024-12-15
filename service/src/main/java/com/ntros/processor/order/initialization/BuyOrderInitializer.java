@@ -19,35 +19,12 @@ import static java.util.concurrent.CompletableFuture.supplyAsync;
 @Slf4j
 public class BuyOrderInitializer extends AbstractCreateOrderInitializer {
 
-
     @Override
-    public CompletableFuture<Order> initialize(CreateOrderRequest request) {
-        return supplyAsync(() -> {
-            Order.OrderBuilder orderBuilder = Order.builder();
-            log.info("Initializing order: {}", request);
-
-            Wallet wallet = walletService.getWalletByCurrencyCodeAccountNumber(request.getCurrencyCode(), request.getAccountNumber());
-            validateAvailableFunds(wallet.getBalance(), request.getPrice(), request.getQuantity());
-            orderBuilder.wallet(wallet);
-
-            MarketProduct marketProduct = marketProductService.getMarketProductByIsinMarketCode(request.getProductIsin(), request.getMarketCode());
-            orderBuilder.marketProduct(marketProduct);
-
-            OrderType orderType = orderService.getOrderType(request.getOrderType());
-            orderBuilder.orderType(orderType);
-
-            orderBuilder.filledQuantity(0); // new order
-            Order order = orderProcessingConverter.toModel(request, orderBuilder);
-            return placeOpenOrderAndSetOpenStatus(order);
-        }, executor);
-
-    }
-
-    private void validateAvailableFunds(BigDecimal currentBalance, BigDecimal orderPrice, int quantity) {
-        BigDecimal requiredAmount = orderPrice.multiply(BigDecimal.valueOf(quantity));
-        if (currentBalance.compareTo(requiredAmount) < 0) {
-            throw new InsufficientFundsException(String.format("Not enough funds to complete the buy order. Current funds: %s", currentBalance));
+    protected void validateOrderRequest(CreateOrderRequest request) {
+        Wallet wallet = walletService.getWalletByCurrencyCodeAccountNumber(request.getCurrencyCode(), request.getAccountNumber());
+        BigDecimal requiredAmount = request.getPrice().multiply(BigDecimal.valueOf(request.getQuantity()));
+        if (wallet.getBalance().compareTo(requiredAmount) < 0) {
+            throw new InsufficientFundsException(String.format("Not enough funds to complete the buy order. Current funds: %s", wallet.getBalance()));
         }
     }
-
 }

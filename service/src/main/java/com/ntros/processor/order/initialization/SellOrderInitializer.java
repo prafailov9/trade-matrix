@@ -20,7 +20,7 @@ import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 @Service("sell")
 @Slf4j
-public class SellOrderInitializer extends AbstractCreateOrderInitializer implements CreateOrderInitializer {
+public class SellOrderInitializer extends AbstractCreateOrderInitializer {
 
 
     private final PositionService positionService;
@@ -31,29 +31,13 @@ public class SellOrderInitializer extends AbstractCreateOrderInitializer impleme
     }
 
     @Override
-    public CompletableFuture<Order> initialize(CreateOrderRequest request) {
-        return supplyAsync(() -> {
-            Order.OrderBuilder orderBuilder = Order.builder();
-            log.info("Initializing order: {}", request);
-
-            int positionQuantity = positionService.getQuantityByAccountNumberAndProductIsin(request.getAccountNumber(), request.getProductIsin());
-            if (positionQuantity < request.getQuantity()) {
-                throw new InsufficientAssetsException(
-                        String.format("Not enough assets to sell. Requested sells=%s, position quantity=%s",
-                                request.getQuantity(), positionQuantity));
-            }
-            Wallet wallet = walletService.getWalletByCurrencyCodeAccountNumber(request.getCurrencyCode(), request.getAccountNumber());
-            MarketProduct marketProduct = marketProductService.getMarketProductByIsinMarketCode(request.getMarketCode(), request.getProductIsin());
-            OrderType orderType = orderService.getOrderType(request.getOrderType());
-
-            orderBuilder.wallet(wallet);
-            orderBuilder.marketProduct(marketProduct);
-            orderBuilder.orderType(orderType);
-
-            Order order = orderProcessingConverter.toModel(request, orderBuilder);
-
-            return placeOpenOrderAndSetOpenStatus(order);
-        }, executor);
+    protected void validateOrderRequest(CreateOrderRequest request) {
+        int positionQuantity = positionService.getQuantityByAccountNumberAndProductIsin(request.getAccountNumber(), request.getProductIsin());
+        if (positionQuantity < request.getQuantity()) {
+            throw new InsufficientAssetsException(
+                    String.format("Not enough assets to sell. Requested sells=%s, position quantity=%s",
+                            request.getQuantity(), positionQuantity));
+        }
     }
 
 }
