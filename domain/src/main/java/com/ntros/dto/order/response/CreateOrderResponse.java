@@ -1,5 +1,6 @@
 package com.ntros.dto.order.response;
 
+import com.ntros.dto.order.OrderDTO;
 import com.ntros.dto.order.request.CreateOrderRequest;
 import lombok.*;
 
@@ -10,6 +11,6 @@ import lombok.*;
 @AllArgsConstructor
 public class CreateOrderResponse extends OrderResponse {
 
-    private CreateOrderRequest createOrderRequest;
+    private OrderDTO orderDTO;
 
 }

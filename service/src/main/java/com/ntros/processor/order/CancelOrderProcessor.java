@@ -23,18 +23,18 @@ public class CancelOrderProcessor extends AbstractOrderProcessor<CancelOrderRequ
 
     @Override
     protected CompletableFuture<Order> initialize(CancelOrderRequest orderRequest) {
-        return orderService.getOrder(orderRequest.getAccountNumber(), orderRequest.getProductIsin());
+        return orderService.getOrderAsync(orderRequest.getAccountNumber(), orderRequest.getProductIsin());
     }
 
     @Override
     protected CompletableFuture<Order> process(Order order) {
         // if none found, throw exception, else update status
-        return orderService.updateOrderStatus(order, CurrentOrderStatus.CANCELLED)
+        return orderService.updateOrderStatusAsync(order, CurrentOrderStatus.CANCELLED)
                 .thenApplyAsync(orderStatus -> {
                     order.getOrderStatuses().add(orderStatus);
                     return order;
                 }, executor)
-                .thenComposeAsync(orderService::createOrder, executor);// update order
+                .thenComposeAsync(orderService::createOrderAsync, executor);// update order
     }
 
 

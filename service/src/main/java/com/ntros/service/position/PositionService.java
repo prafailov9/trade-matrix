@@ -5,18 +5,26 @@ import com.ntros.model.account.Account;
 import com.ntros.model.order.Side;
 import com.ntros.model.product.Product;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface PositionService {
 
-    CompletableFuture<Position> getPositionByAccountNumberAndProductIsin(String accountNumber, String isin);
+    Position createPosition(Position position);
 
-    CompletableFuture<Position> getPositionByAccountAndProductIsin(Account account, String isin);
+    CompletableFuture<List<Position>> getAllPositionsAsync();
+    CompletableFuture<Position> getPositionByAccountAndProductAsync(Account account, Product product);
+    Position getPositionByAccountAndProduct(Account account, Product product);
+    CompletableFuture<Position> getPositionByAccountNumberAndProductIsinAsync(String accountNumber, String isin);
 
-    CompletableFuture<Integer> getQuantityByAccountNumberAndProductIsin(String accountNumber, String isin);
+    CompletableFuture<Position> getPositionByAccountAndProductIsinAsync(Account account, String isin);
 
-    CompletableFuture<Boolean> compareCurrentProductQuantity(String accountNumber, String isin, int orderQuantity);
+    CompletableFuture<Integer> getQuantityByAccountNumberAndProductIsinAsync(String accountNumber, String isin);
+    int getQuantityByAccountNumberAndProductIsin(String accountNumber, String isin);
 
-    CompletableFuture<Void> updatePosition(Account account, Product product, int matchedOrderQuantity, Side side);
+    CompletableFuture<Boolean> compareCurrentProductQuantityAsync(String accountNumber, String isin, int orderQuantity);
+
+    CompletableFuture<Void> updatePositionAsync(Account account, Product product, int matchedOrderQuantity, Side side);
+    void updatePosition(Account account, Product product, int matchedOrderQuantity, Side side);
 
 }

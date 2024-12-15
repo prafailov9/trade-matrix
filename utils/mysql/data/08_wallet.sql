@@ -1,6 +1,6 @@
-insert into wallet (account_id, currency_id, balance, is_main) values (530, 34, 6156176.58661, true);
-insert into wallet (account_id, currency_id, balance, is_main) values (137, 136, 4898822.90739, true);
-insert into wallet (account_id, currency_id, balance, is_main) values (249, 140, 7415649.172382, true);
+insert into wallet (account_id, currency_id, balance, is_main) values (530, 143, 6156176.58661, true);
+insert into wallet (account_id, currency_id, balance, is_main) values (137, 143, 4898822.90739, true);
+insert into wallet (account_id, currency_id, balance, is_main) values (249, 143, 7415649.172382, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (698, 133, 3582471.574378, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (740, 153, 4220368.774519, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (685, 98, 6955382.57772, true);
@@ -15,9 +15,9 @@ insert into wallet (account_id, currency_id, balance, is_main) values (121, 84, 
 insert into wallet (account_id, currency_id, balance, is_main) values (869, 47, 2522284.95215, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (628, 31, 5236942.769486, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (661, 93, 3150556.266777, true);
-insert into wallet (account_id, currency_id, balance, is_main) values (735, 11, 3937316.825875, false);
-insert into wallet (account_id, currency_id, balance, is_main) values (128, 67, 3541165.176073, false);
-insert into wallet (account_id, currency_id, balance, is_main) values (401, 135, 4418948.649939, false);
+insert into wallet (account_id, currency_id, balance, is_main) values (735, 143, 100.0, true);
+insert into wallet (account_id, currency_id, balance, is_main) values (128, 143, 53.0, true);
+insert into wallet (account_id, currency_id, balance, is_main) values (401, 143, 220.0, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (948, 46, 6716969.602988, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (922, 116, 6598002.914069, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (103, 33, 1413315.048444, true);
@@ -215,7 +215,7 @@ insert into wallet (account_id, currency_id, balance, is_main) values (168, 57, 
 insert into wallet (account_id, currency_id, balance, is_main) values (490, 88, 7713033.359407, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (836, 135, 4977932.62033, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (792, 86, 3898884.892362, false);
-insert into wallet (account_id, currency_id, balance, is_main) values (625, 42, 8734945.241275, true);
+insert into wallet (account_id, currency_id, balance, is_main) values (625, 42, 8734945.241275, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (591, 107, 8344126.124644, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (368, 118, 4703518.536671, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (173, 51, 2186015.521122, true);
@@ -400,7 +400,7 @@ insert into wallet (account_id, currency_id, balance, is_main) values (515, 148,
 insert into wallet (account_id, currency_id, balance, is_main) values (364, 149, 8440291.231031, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (540, 130, 8985809.557775, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (391, 83, 8448055.846153, false);
-insert into wallet (account_id, currency_id, balance, is_main) values (401, 143, 1442387.217866, false);
+insert into wallet (account_id, currency_id, balance, is_main) values (401, 42, 1442387.217866, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (586, 16, 8037752.65596, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (949, 114, 5392247.455824, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (440, 18, 2865188.122987, true);
@@ -433,7 +433,7 @@ insert into wallet (account_id, currency_id, balance, is_main) values (727, 66, 
 insert into wallet (account_id, currency_id, balance, is_main) values (195, 66, 9785339.312686, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (164, 119, 4486523.383008, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (304, 49, 5775291.808842, false);
-insert into wallet (account_id, currency_id, balance, is_main) values (625, 143, 2606500.4728, false);
+insert into wallet (account_id, currency_id, balance, is_main) values (625, 143, 1000000005000.0, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (311, 27, 9705750.749021, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (96, 3, 30792.896208, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (457, 98, 6806802.004585, false);
@@ -486,7 +486,7 @@ insert into wallet (account_id, currency_id, balance, is_main) values (531, 6, 8
 insert into wallet (account_id, currency_id, balance, is_main) values (63, 26, 6462851.841547, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (90, 66, 8071763.53896, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (31, 99, 2573716.806632, false);
-insert into wallet (account_id, currency_id, balance, is_main) values (249, 29, 4332049.014655, true);
+insert into wallet (account_id, currency_id, balance, is_main) values (249, 42, 4332049.014655, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (631, 123, 6862244.145226, true);
 insert into wallet (account_id, currency_id, balance, is_main) values (818, 140, 3483970.837011, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (297, 54, 314738.741889, false);
@@ -813,7 +813,7 @@ insert into wallet (account_id, currency_id, balance, is_main) values (107, 63, 
 insert into wallet (account_id, currency_id, balance, is_main) values (683, 58, 8115492.746565, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (580, 48, 299856.4015, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (119, 21, 5358572.326185, true);
-insert into wallet (account_id, currency_id, balance, is_main) values (735, 78, 8320510.098578, false);
+insert into wallet (account_id, currency_id, balance, is_main) values (735, 42, 8320510.098578, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (227, 157, 2588535.329644, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (162, 138, 5133555.469129, false);
 insert into wallet (account_id, currency_id, balance, is_main) values (675, 60, 9800809.223643, true);

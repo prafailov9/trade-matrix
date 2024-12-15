@@ -9,7 +9,8 @@ import java.util.concurrent.CompletableFuture;
 
 public interface MarketProductService {
 
-    CompletableFuture<MarketProduct> getMarketProductByIsinMarketCode(String isin, String marketCode);
+    CompletableFuture<MarketProduct> getMarketProductByIsinMarketCodeAsync(String isin, String marketCode);
+    MarketProduct getMarketProductByIsinMarketCode(String isin, String marketCode);
     CompletableFuture<BigDecimal> getMarketPriceForProductAndCurrency(Product product, Currency currency);
 
 }

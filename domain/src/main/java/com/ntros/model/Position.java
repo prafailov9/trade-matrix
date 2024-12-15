@@ -15,15 +15,16 @@ public class Position {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer positionId;
 
-
     @ManyToOne
-    @JoinColumn(name = "portfolio")
+    @JoinColumn(name = "portfolio_id")
     private Portfolio portfolio;
 
     @ManyToOne
-    @JoinColumn(name = "product")
+    @JoinColumn(name = "product_id")
     private Product product;
 
     private int quantity;
+    @Version
+    private Integer version;
 
 }

@@ -29,4 +29,6 @@ public class Wallet {
     private BigDecimal balance;
     private boolean isMain;
 
+    @Version
+    private Integer version;
 }

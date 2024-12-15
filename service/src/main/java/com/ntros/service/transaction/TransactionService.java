@@ -8,10 +8,12 @@ import java.util.concurrent.CompletableFuture;
 
 public interface TransactionService {
 
-    CompletableFuture<TransactionType> getTransactionType(String type);
+    CompletableFuture<TransactionType> getTransactionTypeAsync(String type);
+    TransactionType getTransactionType(String type);
 
-    CompletableFuture<Transaction> createTransaction(Transaction transaction);
-    CompletableFuture<List<Transaction>> getAllTransactions();
+    CompletableFuture<Transaction> createTransactionAsync(Transaction transaction);
+    Transaction createTransaction(Transaction transaction);
+    CompletableFuture<List<Transaction>> getAllTransactionsAsync();
     CompletableFuture<List<Transaction>> getAllTransactionsByPortfolio(String portfolioName);
     CompletableFuture<List<Transaction>> getAllTransactionsByAccountNumber(String accountNumber);
 }

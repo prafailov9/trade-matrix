@@ -3,12 +3,17 @@ package com.ntros.processor.order.initialization;
 import com.ntros.dto.order.request.CreateOrderRequest;
 import com.ntros.exception.InsufficientFundsException;
 import com.ntros.model.order.Order;
+import com.ntros.model.order.OrderType;
+import com.ntros.model.product.MarketProduct;
+import com.ntros.model.wallet.Wallet;
 import com.ntros.processor.order.initialization.create.AbstractCreateOrderInitializer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.concurrent.CompletableFuture;
+
+import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 @Service("buy")
 @Slf4j
@@ -17,31 +22,25 @@ public class BuyOrderInitializer extends AbstractCreateOrderInitializer {
 
     @Override
     public CompletableFuture<Order> initialize(CreateOrderRequest request) {
-        Order.OrderBuilder orderBuilder = Order.builder();
-        log.info("Initializing order: {}", request);
-        // get wallet from DB, validate available balance.
-        return walletService.getWalletByCurrencyCodeAccountNumber(request.getCurrencyCode(), request.getAccountNumber())
-                .thenComposeAsync(wallet -> {
-                    orderBuilder.wallet(wallet);
-                    validateAvailableFunds(wallet.getBalance(), request.getPrice(), request.getQuantity());
+        return supplyAsync(() -> {
+            Order.OrderBuilder orderBuilder = Order.builder();
+            log.info("Initializing order: {}", request);
 
-                    return marketProductService.getMarketProductByIsinMarketCode(request.getProductIsin(), request.getMarketCode());
-                }, executor)
-                // get Product and Order Type
-                .thenComposeAsync(marketProduct -> {
-                    orderBuilder.marketProduct(marketProduct);
+            Wallet wallet = walletService.getWalletByCurrencyCodeAccountNumber(request.getCurrencyCode(), request.getAccountNumber());
+            validateAvailableFunds(wallet.getBalance(), request.getPrice(), request.getQuantity());
+            orderBuilder.wallet(wallet);
 
-                    return orderService.getOrderType(request.getOrderType());
-                }, executor).thenComposeAsync(orderType -> {
-                    orderBuilder.orderType(orderType);
-                    // Convert DTO to Order model
-                    return CompletableFuture.supplyAsync(() -> {
-                        orderBuilder.filledQuantity(0); // new order
-                        return orderConverter.toModel(request, orderBuilder);
-                    }, executor);
-                }, executor)
-                // save order and set open status
-                .thenComposeAsync(this::placeOpenOrderAndSetOpenStatus, executor);
+            MarketProduct marketProduct = marketProductService.getMarketProductByIsinMarketCode(request.getProductIsin(), request.getMarketCode());
+            orderBuilder.marketProduct(marketProduct);
+
+            OrderType orderType = orderService.getOrderType(request.getOrderType());
+            orderBuilder.orderType(orderType);
+
+            orderBuilder.filledQuantity(0); // new order
+            Order order = orderProcessingConverter.toModel(request, orderBuilder);
+            return placeOpenOrderAndSetOpenStatus(order);
+        }, executor);
+
     }
 
     private void validateAvailableFunds(BigDecimal currentBalance, BigDecimal orderPrice, int quantity) {

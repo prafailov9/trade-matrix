@@ -34,7 +34,7 @@ public class Order {
     @JoinColumn(name = "market_product_id", nullable = false)
     private MarketProduct marketProduct;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.REMOVE)
+    @OneToMany(mappedBy = "order", fetch = FetchType.EAGER, cascade = CascadeType.REMOVE)
     private List<OrderStatus> orderStatuses;
 
     @Enumerated(EnumType.STRING)

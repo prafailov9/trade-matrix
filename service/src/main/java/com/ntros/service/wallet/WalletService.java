@@ -12,7 +12,8 @@ public interface WalletService {
 
     CompletableFuture<Wallet> getWallet(final int walletId);
 
-    CompletableFuture<Wallet> getWalletByCurrencyCodeAccountNumber(final String currencyCode, final String accountNumber);
+    CompletableFuture<Wallet> getWalletByCurrencyCodeAccountNumberAsync(final String currencyCode, final String accountNumber);
+    Wallet getWalletByCurrencyCodeAccountNumber(final String currencyCode, final String accountNumber);
 
     CompletableFuture<Wallet> getWalletByCurrencyNameAndAccountId(final String currencyName, final int accountId);
     CompletableFuture<Wallet> getWalletByCurrencyCodeAndAccountId(final String currencyCode, final int accountId);
@@ -28,7 +29,8 @@ public interface WalletService {
 
     CompletableFuture<Integer> deleteWallet(final UniqueWalletDTO uniqueWalletDTO);
 
-    CompletableFuture<Void> updateBalance(final int walletId, final BigDecimal balance);
+    CompletableFuture<Void> updateBalanceAsync(final int walletId, final BigDecimal balance);
+    void updateBalance(int walletId, BigDecimal balance);
     CompletableFuture<Wallet> validateBalance(Wallet wallet, BigDecimal price, int quantity);
 
 }

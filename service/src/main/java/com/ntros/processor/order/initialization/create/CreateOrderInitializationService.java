@@ -5,6 +5,7 @@ import com.ntros.model.order.Order;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -34,6 +35,7 @@ public class CreateOrderInitializationService implements CreateOrderInitializati
      * @return - initialized order domain object
      */
     @Override
+    @Transactional
     public CompletableFuture<Order> initializeOrder(CreateOrderRequest createOrderRequest) {
         CreateOrderInitializer initializer = createOrderInitializers.get(createOrderRequest.getTransactionType().toLowerCase());
         if (initializer == null) {

@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -44,27 +45,33 @@ public class OrderDataService implements OrderService {
     }
 
     @Override
-    public CompletableFuture<Order> findOrderById(Integer orderId) {
+    public CompletableFuture<Order> findOrderByIdAsync(Integer orderId) {
         return supplyAsync(() -> orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found")));
     }
 
     @Transactional
     @Modifying
-    public CompletableFuture<Order> createOrder(Order order) {
-        return supplyAsync(() -> {
-            try {
-                return orderRepository.save(order);
-            } catch (DataIntegrityViolationException | OptimisticLockException ex) {
-                log.error("Could not save order {}. {}", order, ex.getMessage(), ex);
-                throw handleOptimisticLockAndThrow(ex); // rethrowing lock exception to handle retries
-            }
-        }, executor);
+    public CompletableFuture<Order> createOrderAsync(Order order) {
+        return supplyAsync(() -> createOrder(order), executor);
 
     }
 
     @Override
-    public CompletableFuture<Order> getOrder(String accountNumber, String productIsin) {
+    public Order createOrder(Order order) {
+        try {
+            Order saved = orderRepository.save(order);
+            log.info("[IN OrderService.createOrder()]\nSaved order: {}", saved);
+            return saved;
+        } catch (DataIntegrityViolationException | OptimisticLockException ex) {
+            log.error("[IN OrderService.createOrder()]\nCould not save order {}. {}", order, ex.getMessage(), ex);
+            throw handleOptimisticLockAndThrow(ex); // rethrowing lock exception to handle retries
+        }
+
+    }
+
+    @Override
+    public CompletableFuture<Order> getOrderAsync(String accountNumber, String productIsin) {
         return supplyAsync(() -> orderRepository
                         .findByAccountNumberProductIsinOrderStatus(accountNumber, productIsin)
                         .orElseThrow(() -> new OrderNotFoundException(
@@ -76,7 +83,7 @@ public class OrderDataService implements OrderService {
     }
 
     @Override
-    public CompletableFuture<Void> updateOrder(Order order) {
+    public CompletableFuture<Void> updateOrderAsync(Order order) {
         return CompletableFuture.runAsync(() -> {
             Order savedOrder = orderRepository.findById(order.getOrderId())
                     .orElseThrow(() -> new OrderNotFoundException(
@@ -97,7 +104,7 @@ public class OrderDataService implements OrderService {
     }
 
     @Override
-    public CompletableFuture<List<Order>> getAllOrders() {
+    public CompletableFuture<List<Order>> getAllOrdersAsync() {
         return supplyAsync(() ->
                 Optional.of(orderRepository.findAll())
                         .orElseThrow(() -> new OrderNotFoundException("Could Not find any orders.")));
@@ -110,34 +117,58 @@ public class OrderDataService implements OrderService {
      * @return
      */
     @Override
-    public CompletableFuture<List<Order>> findMatchingOrders(Order order) {
+    public CompletableFuture<List<Order>> findMatchingOrdersAsync(Order order) {
+        return order.getSide().equals(Side.BUY)
+                ? findMatchingSellOrdersAsync(order.getMarketProduct(), order.getPrice())
+                : findMatchingBuyOrdersAsync(order.getMarketProduct(), order.getPrice());
+    }
+
+    @Override
+    public List<Order> findMatchingOrders(Order order) {
         return order.getSide().equals(Side.BUY)
                 ? findMatchingSellOrders(order.getMarketProduct(), order.getPrice())
                 : findMatchingBuyOrders(order.getMarketProduct(), order.getPrice());
     }
 
     @Override
-    public CompletableFuture<List<Order>> findMatchingBuyOrders(MarketProduct marketProduct, BigDecimal price) {
-        return supplyAsync(() -> orderRepository.findAllByMatchingBuyOrders(marketProduct, price), executor);
+    @Transactional
+    public CompletableFuture<List<Order>> findMatchingBuyOrdersAsync(MarketProduct marketProduct, BigDecimal price) {
+        return supplyAsync(() -> findMatchingBuyOrders(marketProduct, price), executor);
+    }
+
+    @Override
+    public List<Order> findMatchingBuyOrders(MarketProduct marketProduct, BigDecimal price) {
+        return orderRepository.findAllByMatchingBuyOrders(marketProduct, price);
     }
 
 
     @Override
-    public CompletableFuture<List<Order>> findMatchingSellOrders(MarketProduct marketProduct, BigDecimal price) {
-        return supplyAsync(() -> orderRepository.findAllByMatchingSellOrders(marketProduct, price), executor);
+    @Transactional
+    public CompletableFuture<List<Order>> findMatchingSellOrdersAsync(MarketProduct marketProduct, BigDecimal price) {
+        return supplyAsync(() -> findMatchingSellOrders(marketProduct, price), executor);
     }
 
     @Override
-    public CompletableFuture<OrderType> getOrderType(String type) {
+    public List<Order> findMatchingSellOrders(MarketProduct marketProduct, BigDecimal price) {
+        return orderRepository.findAllByMatchingSellOrders(marketProduct, price);
+    }
+
+    @Override
+    public CompletableFuture<OrderType> getOrderTypeAsync(String type) {
         return supplyAsync(() ->
-                orderTypeRepository.findOneByOrderTypeName(type)
-                        .orElseThrow(() ->
-                                new OrderTypeNotFoundException(
-                                        String.format("Order type not found for: %s", type))), executor);
+                getOrderType(type), executor);
     }
 
     @Override
-    public CompletableFuture<String> deleteAllOrders() {
+    public OrderType getOrderType(String type) {
+        return orderTypeRepository.findOneByOrderTypeName(type)
+                .orElseThrow(() ->
+                        new OrderTypeNotFoundException(
+                                String.format("Order type not found for: %s", type)));
+    }
+
+    @Override
+    public CompletableFuture<String> deleteAllOrdersAsync() {
         return supplyAsync(() -> {
             String res;
             try {
@@ -163,25 +194,37 @@ public class OrderDataService implements OrderService {
 
 
     @Override
-    public CompletableFuture<OrderStatus> updateOrderStatus(Order order, CurrentOrderStatus orderStatus) {
-        return supplyAsync(() -> {
-            try {
-                return orderStatusRepository.save(OrderStatus.builder()
-                        .order(order)
-                        .currentStatus(orderStatus.name())
-                        .build());
-            } catch (DataIntegrityViolationException ex) {
-                throw new OrderStatusCreateFailedException(
-                        String.format("Could not update order status with given values: order - %s, status - %s",
-                                order, orderStatus.name()), ex);
-            }
-        }, executor);
+    public CompletableFuture<OrderStatus> updateOrderStatusAsync(Order order, CurrentOrderStatus orderStatus) {
+        return supplyAsync(() -> updateOrderStatus(order, orderStatus), executor);
+    }
+
+    @Override
+    public OrderStatus updateOrderStatus(Order order, CurrentOrderStatus orderStatus) {
+        try {
+            log.info("[IN OrderDataService.updateOrderStatus()]\nUpdating status:{} for order:{}", orderStatus, order);
+            return orderStatusRepository.save(OrderStatus.builder()
+                    .order(order)
+                    .currentStatus(orderStatus.name())
+                    .build());
+        } catch (DataIntegrityViolationException ex) {
+            log.info("[IN OrderDataService.updateOrderStatus()]\n Failed to update status:{} for order:{}", orderStatus, order);
+            throw new OrderStatusCreateFailedException(
+                    String.format("Could not update order status with given values: order: %s, status: %s",
+                            order, orderStatus.name()), ex);
+        }
     }
 
 
     @Override
-    public CompletableFuture<OrderStatus> determineAndUpdateCurrentStatus(Order order) {
-        return order.getQuantity() == 0
+    public CompletableFuture<OrderStatus> determineAndUpdateCurrentStatusAsync(Order order) {
+        return order.getQuantity() == order.getFilledQuantity() && order.getRemainingQuantity() == 0
+                ? updateOrderStatusAsync(order, CurrentOrderStatus.FILLED)
+                : updateOrderStatusAsync(order, CurrentOrderStatus.PARTIALLY_FILLED);
+    }
+
+    @Override
+    public OrderStatus determineAndUpdateCurrentStatus(Order order) {
+        return order.getQuantity() == order.getFilledQuantity() && order.getRemainingQuantity() == 0
                 ? updateOrderStatus(order, CurrentOrderStatus.FILLED)
                 : updateOrderStatus(order, CurrentOrderStatus.PARTIALLY_FILLED);
     }
@@ -199,7 +242,7 @@ public class OrderDataService implements OrderService {
     }
 
     private RuntimeException handleOptimisticLockAndThrow(RuntimeException ex) {
-        return ex instanceof OptimisticLockException
+        return ex instanceof OptimisticLockException || ex instanceof ObjectOptimisticLockingFailureException
                 ? ex
                 : new OrderConstraintViolationException(ex.getMessage(), ex);
     }

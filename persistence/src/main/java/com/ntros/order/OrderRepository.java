@@ -3,7 +3,9 @@ package com.ntros.order;
 import com.ntros.model.order.Order;
 import com.ntros.model.product.MarketProduct;
 import com.ntros.model.product.Product;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -33,7 +35,7 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
             "AND o.side = 'BUY' " +
             "AND o.price <= :sellOrderPrice " +
             "AND o.quantity > 0 " +
-            "AND os.currentStatus = 'OPEN' " +
+            "AND os.currentStatus = 'OPEN' OR os.currentStatus = 'PARTIALLY_FILLED' " +
             "ORDER BY o.price ASC, o.placedAt ASC")
     List<Order> findAllByMatchingBuyOrders(@Param("marketProduct") MarketProduct marketProduct, @Param("sellOrderPrice") BigDecimal sellOrderPrice);
 
@@ -44,7 +46,7 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
             "AND o.side = 'SELL' " +
             "AND o.price >= :buyOrderPrice " +
             "AND o.quantity > 0 " +
-            "AND os.currentStatus = 'OPEN' " +
+            "AND os.currentStatus = 'OPEN' OR os.currentStatus = 'PARTIALLY_FILLED' " +
             "ORDER BY o.price ASC, o.placedAt ASC")
     List<Order> findAllByMatchingSellOrders(@Param("marketProduct") MarketProduct marketProduct, @Param("buyOrderPrice") BigDecimal buyOrderPrice);
 }

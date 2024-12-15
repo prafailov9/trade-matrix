@@ -1,7 +1,7 @@
 package com.ntros.controller.order;
 
 import com.ntros.controller.AbstractApiController;
-import com.ntros.converter.order.OrderConverter;
+import com.ntros.converter.order.OrderDataConverter;
 import com.ntros.service.order.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,12 +15,12 @@ import java.util.stream.Collectors;
 public class OrderDataController extends AbstractApiController {
 
     private final OrderService orderService;
-    private final OrderConverter orderConverter;
+    private final OrderDataConverter orderDataConverter;
 
     @Autowired
-    public OrderDataController(OrderService orderService, OrderConverter orderConverter) {
+    public OrderDataController(OrderService orderService, OrderDataConverter orderDataConverter) {
         this.orderService = orderService;
-        this.orderConverter = orderConverter;
+        this.orderDataConverter = orderDataConverter;
 
     }
 
@@ -28,9 +28,9 @@ public class OrderDataController extends AbstractApiController {
     @GetMapping("/all")
     @ResponseBody
     public CompletableFuture<ResponseEntity<?>> getAllOrders() {
-        return orderService.getAllOrders()
+        return orderService.getAllOrdersAsync()
                 .thenApplyAsync(orders -> orders.stream()
-                        .map(orderConverter::toDTO)
+                        .map(orderDataConverter::toDTO)
                         .collect(Collectors.toList()), executor)
                 .handleAsync(this::handleResponseAsync, executor);
     }
@@ -38,6 +38,7 @@ public class OrderDataController extends AbstractApiController {
     @DeleteMapping("/all")
     @ResponseBody
     public CompletableFuture<ResponseEntity<?>> deleteAllOrders() {
-        return orderService.deleteAllOrders().handleAsync(this::handleResponseAsync, executor);
+        return orderService.deleteAllOrdersAsync()
+                .handleAsync(this::handleResponseAsync, executor);
     }
 }

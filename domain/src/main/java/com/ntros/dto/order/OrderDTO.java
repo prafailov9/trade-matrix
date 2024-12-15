@@ -1,16 +1,19 @@
-package com.ntros.dto.order.request;
+package com.ntros.dto.order;
 
 import com.ntros.validation.OrderTypeSupported;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
+
+import java.math.BigDecimal;
 
 @Data
+@RequiredArgsConstructor
 @OrderTypeSupported
-public abstract class OrderRequest {
-    private String orderType; // market, limit, stop, fill_or_kill
+public class OrderDTO {
+
+    private String orderType; // buy or sell
+    private String currentStatus;
 
     @Pattern(regexp = "\\d+", message = "AN must be a number.")
     @Size(min = 8, max = 12, message = "Invalid AN: must be 8 - 13 digits.")
@@ -28,4 +31,15 @@ public abstract class OrderRequest {
     protected String marketCode;
 
 
+    @NotNull
+    @Min(value = 1, message = "price of order cannot be less than 1.")
+    protected BigDecimal price;
+    @NotNull
+    @Min(value = 1, message = "quantity cannot be less than 1.")
+    private int quantity;
+    private int filledQuantity;
+    private int remainingQuantity;
+
+    @NotNull(message = "tx_type cannot be null.")
+    private String transactionType;
 }

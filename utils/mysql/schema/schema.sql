@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS wallet (
     created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_main BOOLEAN DEFAULT FALSE,
+    version INT DEFAULT 0,
 
     FOREIGN KEY (account_id) REFERENCES account(account_id) ON DELETE CASCADE,
     FOREIGN KEY (currency_id) REFERENCES currency(currency_id),
@@ -248,7 +249,7 @@ CREATE TABLE IF NOT EXISTS portfolio (
     account_id INT NOT NULL,
     portfolio_name VARCHAR(50) NOT NULL,
     total_value DECIMAL(20, 2),
-    risk_level ENUM('High', 'Moderate', 'Low') DEFAULT 'Moderate',
+    risk_level ENUM('HIGH', 'MODERATE', 'LOW') DEFAULT 'MODERATE',
     -- leverage data
     using_margin BOOLEAN DEFAULT FALSE, -- to track if portfolio uses borrowed funds(leverage) to increase exposure to certain assets.
     margin_ratio DECIMAL(5, 2) DEFAULT 1.00, -- 1.00 indicates no leverage. The proportion of borrowed funds in the portfolio. Higher leverage ratios imply higher risk.
@@ -277,6 +278,7 @@ CREATE TABLE IF NOT EXISTS `position` (
     portfolio_id INT NOT NULL,
     product_id INT NOT NULL,
     quantity INT NOT NULL,
+    version INT DEFAULT 0,
 
     FOREIGN KEY (portfolio_id) REFERENCES portfolio(portfolio_id),
     FOREIGN KEY (product_id) REFERENCES product(product_id)

@@ -39,7 +39,7 @@ public abstract class AbstractOrderProcessor<T extends OrderRequest, R extends O
      * @param orderRequest - incoming order
      * @return Order Response
      *
-     * TODO: Detach init and processing. After Init, a response should be returned immediately to the user.
+     * TODO: Detach init and fulfillment(processing). After Init, return response immediately, process order in background.
      */
     @Override
     public CompletableFuture<R> processOrder(T orderRequest) {

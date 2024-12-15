@@ -25,6 +25,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
+import static java.util.concurrent.CompletableFuture.runAsync;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 @Service
@@ -58,13 +59,16 @@ public class WalletDataService implements WalletService {
     }
 
     @Override
-    public CompletableFuture<Wallet> getWalletByCurrencyCodeAccountNumber(String currencyCode, String accountNumber) {
-        return supplyAsync(() ->
-                        walletRepository.findByCurrencyCodeAccountNumber(currencyCode, accountNumber)
-                                .orElseThrow(() ->
-                                        new WalletNotFoundException(
-                                                String.format("Wallet not found for [%s, %s]", currencyCode, accountNumber)))
-                , executor);
+    public CompletableFuture<Wallet> getWalletByCurrencyCodeAccountNumberAsync(String currencyCode, String accountNumber) {
+        return supplyAsync(() -> getWalletByCurrencyCodeAccountNumber(currencyCode, accountNumber), executor);
+    }
+
+    @Override
+    public Wallet getWalletByCurrencyCodeAccountNumber(String currencyCode, String accountNumber) {
+        return walletRepository.findByCurrencyCodeAccountNumber(currencyCode, accountNumber)
+                .orElseThrow(() ->
+                        new WalletNotFoundException(
+                                String.format("Wallet not found for [%s, %s]", currencyCode, accountNumber)));
     }
 
     @Override
@@ -113,17 +117,20 @@ public class WalletDataService implements WalletService {
     }
 
     @Override
-    public CompletableFuture<Void> updateBalance(int walletId, BigDecimal balance) {
-        return CompletableFuture.runAsync(() -> {
-            try {
-                walletRepository.updateBalance(walletId, balance);
-            } catch (DataAccessException ex) {
-                String error = String.format("Could not update balance for wallet: %s", walletId);
-                log.error(error, ex);
-                // rethrowing as a completion exception so it is caught by exceptionally block in thenCombine
-                throw new CompletionException(error, new WalletUpdateFailedException(error));
-            }
-        });
+    public CompletableFuture<Void> updateBalanceAsync(int walletId, BigDecimal balance) {
+        return runAsync(() -> updateBalance(walletId, balance), executor);
+    }
+
+    @Override
+    public void updateBalance(int walletId, BigDecimal balance) {
+        try {
+            walletRepository.updateBalance(walletId, balance);
+        } catch (DataAccessException ex) {
+            String error = String.format("Could not update balance for wallet: %s", walletId);
+            log.error(error, ex);
+            // rethrowing as a completion exception so it is caught by exceptionally block in thenCombine
+            throw new CompletionException(error, new WalletUpdateFailedException(error));
+        }
     }
 
     @Override

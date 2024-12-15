@@ -1,6 +1,6 @@
 package com.ntros.service.portfolio;
 
-import com.ntros.exception.PositionNotFoundException;
+import com.ntros.exception.NotFoundException;
 import com.ntros.model.account.Account;
 import com.ntros.model.portfolio.Portfolio;
 import com.ntros.model.product.Product;
@@ -25,11 +25,22 @@ public class PortfolioDataService implements PortfolioService {
     }
 
     @Override
-    public CompletableFuture<Portfolio> getPortfolioByAccountProductIsin(Account account, Product product) {
-        return supplyAsync(() ->
-                portfolioRepository.findByAccountNumberProductIsin(account.getAccountNumber(), product.getIsin())
-                        .orElseThrow(() -> new PositionNotFoundException(
-                                String.format("portfolio not found for account: %s, product=%s",
-                                        account.getAccountNumber(), product.getProductName()))));
+    public CompletableFuture<Portfolio> getPortfolioByAccountNumberAsync(String accountNumber) {
+        return supplyAsync(() -> getPortfolioByAccountNumber(accountNumber));
+    }
+
+    @Override
+    public Portfolio getPortfolioByAccountNumber(String accountNumber) {
+        return portfolioRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new NotFoundException(
+                        String.format("Portfolio not found for account: %s",
+                                accountNumber)));
+    }
+
+    @Override
+    public Portfolio getPortfolioByAccount(Account account) {
+        return portfolioRepository.findByAccount(account)
+                .orElseThrow(() ->
+                        new NotFoundException(String.format("Portfolio not found for account: %s", account)));
     }
 }

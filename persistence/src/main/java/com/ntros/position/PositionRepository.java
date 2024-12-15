@@ -2,6 +2,7 @@ package com.ntros.position;
 
 import com.ntros.model.Position;
 import com.ntros.model.account.Account;
+import com.ntros.model.product.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,6 +10,14 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface PositionRepository extends JpaRepository<Position, Integer> {
+
+    @Query("SELECT pos FROM Position pos " +
+            "JOIN pos.portfolio pf " +
+            "JOIN pos.product pr " +
+            "WHERE pf.account = :account " +
+            "AND pr = :product")
+    Optional<Position> findOneByAccountProduct(Account account, Product product);
+
 
     @Query("SELECT pos FROM Position pos " +
             "JOIN pos.portfolio pf " +

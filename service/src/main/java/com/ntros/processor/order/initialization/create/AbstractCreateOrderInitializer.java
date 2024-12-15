@@ -1,21 +1,24 @@
 package com.ntros.processor.order.initialization.create;
 
 
-import com.ntros.converter.order.OrderConverter;
-import com.ntros.service.marketproduct.MarketProductService;
-import com.ntros.service.order.OrderService;
-import com.ntros.service.product.ProductService;
-import com.ntros.service.wallet.WalletService;
+import com.ntros.converter.order.OrderProcessingConverter;
 import com.ntros.model.order.CurrentOrderStatus;
 import com.ntros.model.order.Order;
+import com.ntros.model.order.OrderStatus;
+import com.ntros.service.marketproduct.MarketProductService;
+import com.ntros.service.order.OrderService;
+import com.ntros.service.wallet.WalletService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+
+import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 @Service
 @Slf4j
@@ -29,27 +32,24 @@ public abstract class AbstractCreateOrderInitializer implements CreateOrderIniti
     @Autowired
     protected WalletService walletService;
     @Autowired
-    protected OrderConverter orderConverter;
-    @Autowired
-    protected ProductService productService;
+    protected OrderProcessingConverter orderProcessingConverter;
 
     @Autowired
     protected MarketProductService marketProductService;
 
 
-    protected CompletableFuture<Order> placeOpenOrderAndSetOpenStatus(Order openOrder) {
-        return orderService.createOrder(openOrder)
-                .thenComposeAsync(order -> orderService.updateOrderStatus(order, CurrentOrderStatus.OPEN))
-                .thenApplyAsync(orderStatus -> {
-                    openOrder.setOrderStatuses(List.of(orderStatus));
-                    log.info("Order initialized: {} for [product = {}, currency = {}, account = {}] with status: {}",
-                            openOrder,
-                            openOrder.getMarketProduct(),
-                            openOrder.getWallet().getCurrency(),
-                            openOrder.getWallet().getAccount().getAccountNumber(),
-                            orderStatus.getCurrentStatus());
-                    return openOrder;
-                }, executor);
+    @Transactional
+    protected Order placeOpenOrderAndSetOpenStatus(Order openOrder) {
+        Order createdOrder = orderService.createOrder(openOrder);
+        OrderStatus orderStatus = orderService.updateOrderStatus(createdOrder, CurrentOrderStatus.OPEN);
+        createdOrder.setOrderStatuses(List.of(orderStatus));
+        log.info("Order initialized: {} for [product = {}, currency = {}, account = {}] with status: {}",
+                createdOrder,
+                createdOrder.getMarketProduct(),
+                createdOrder.getWallet().getCurrency(),
+                createdOrder.getWallet().getAccount().getAccountNumber(),
+                orderStatus.getCurrentStatus());
+        return createdOrder;
     }
 
 }

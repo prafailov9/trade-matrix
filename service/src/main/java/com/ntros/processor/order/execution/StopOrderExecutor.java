@@ -1,6 +1,7 @@
 package com.ntros.processor.order.execution;
 
 import com.ntros.service.order.OrderService;
+import com.ntros.service.portfolio.PortfolioService;
 import com.ntros.service.position.PositionService;
 import com.ntros.service.wallet.WalletService;
 import com.ntros.model.order.Order;
@@ -23,17 +24,13 @@ import java.util.concurrent.Executor;
 public class StopOrderExecutor extends AbstractOrderExecutor implements OrderExecutor {
 
 
-    public StopOrderExecutor(Executor executor, OrderService orderService, TransactionService transactionService, PositionService positionService, WalletService walletService) {
-        super(executor, orderService, transactionService, positionService, walletService);
+    public StopOrderExecutor(Executor executor, OrderService orderService, TransactionService transactionService, PositionService positionService, WalletService walletService, PortfolioService portfolioService) {
+        super(executor, orderService, transactionService, positionService, walletService, portfolioService);
     }
 
-    @Override
-    protected CompletableFuture<Order> fulfillOrders(Order incomingOrder, List<Order> matchingOrders) {
-        return null;
-    }
 
     @Override
-    protected CompletableFuture<Void> executeOrderTransaction(Order incomingOrder, Order matchingOrder, int matchedQuantity) {
+    protected List<Order> fulfillOrders(Order incomingOrder, List<Order> matchingOrders) {
         return null;
     }
 

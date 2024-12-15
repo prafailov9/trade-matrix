@@ -1,5 +1,9 @@
 package com.ntros.processor.order.initialization;
 
+import com.ntros.model.Position;
+import com.ntros.model.order.OrderType;
+import com.ntros.model.product.MarketProduct;
+import com.ntros.model.wallet.Wallet;
 import com.ntros.service.position.PositionService;
 import com.ntros.dto.order.request.CreateOrderRequest;
 import com.ntros.exception.InsufficientAssetsException;
@@ -11,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
+
+import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 @Service("sell")
 @Slf4j
@@ -26,37 +32,28 @@ public class SellOrderInitializer extends AbstractCreateOrderInitializer impleme
 
     @Override
     public CompletableFuture<Order> initialize(CreateOrderRequest request) {
-        Order.OrderBuilder orderBuilder = Order.builder();
-        log.info("Initializing order: {}", request);
-        // Step 1: Validate and retrieve wallet, check funds for buy orders
-        return walletService.getWalletByCurrencyCodeAccountNumber(request.getCurrencyCode(), request.getAccountNumber())
-                .thenComposeAsync(wallet -> {
-                    orderBuilder.wallet(wallet);
+        return supplyAsync(() -> {
+            Order.OrderBuilder orderBuilder = Order.builder();
+            log.info("Initializing order: {}", request);
 
-                    return marketProductService.getMarketProductByIsinMarketCode(request.getMarketCode(), request.getProductIsin());
-                }, executor)
-                .thenComposeAsync(marketProduct -> {
-                    orderBuilder.marketProduct(marketProduct);
-                    return positionService.getQuantityByAccountNumberAndProductIsin(request.getAccountNumber(), request.getProductIsin())
-                            .thenApplyAsync(positionQuantity -> {
-                                if (positionQuantity < request.getQuantity()) {
-                                    throw new InsufficientAssetsException(
-                                            String.format("Not enough assets to sell. Requested sells=%s, position quantity=%s",
-                                                    request.getQuantity(), positionQuantity));
-                                }
-                                return CompletableFuture.completedFuture(positionQuantity);
-                            }, executor);
-                }, executor)
-                // Step 2: Retrieve Product and Order Type
-                .thenComposeAsync(positionQuantity -> orderService.getOrderType(request.getOrderType()), executor)
-                .thenComposeAsync(orderType -> {
-                    orderBuilder.orderType(orderType);
-                    // Convert DTO to Order model
-                    return CompletableFuture.supplyAsync(() -> orderConverter.toModel(request, orderBuilder));
-                }, executor)
+            int positionQuantity = positionService.getQuantityByAccountNumberAndProductIsin(request.getAccountNumber(), request.getProductIsin());
+            if (positionQuantity < request.getQuantity()) {
+                throw new InsufficientAssetsException(
+                        String.format("Not enough assets to sell. Requested sells=%s, position quantity=%s",
+                                request.getQuantity(), positionQuantity));
+            }
+            Wallet wallet = walletService.getWalletByCurrencyCodeAccountNumber(request.getCurrencyCode(), request.getAccountNumber());
+            MarketProduct marketProduct = marketProductService.getMarketProductByIsinMarketCode(request.getMarketCode(), request.getProductIsin());
+            OrderType orderType = orderService.getOrderType(request.getOrderType());
 
-                // Step 3: save order and set status
-                .thenComposeAsync(this::placeOpenOrderAndSetOpenStatus, executor);
+            orderBuilder.wallet(wallet);
+            orderBuilder.marketProduct(marketProduct);
+            orderBuilder.orderType(orderType);
+
+            Order order = orderProcessingConverter.toModel(request, orderBuilder);
+
+            return placeOpenOrderAndSetOpenStatus(order);
+        }, executor);
     }
 
 }

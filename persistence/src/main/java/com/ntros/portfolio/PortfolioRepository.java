@@ -13,30 +13,14 @@ import java.util.Optional;
 @Repository
 public interface PortfolioRepository extends JpaRepository<Portfolio, Integer> {
 
-//    @Query("SELECT pf FROM Portfolio pf " +
-//            "JOIN pf.account a " +
-//            "JOIN pf.position pos" +
-//            "JOIN pos.product pr " +
-//            "WHERE pf.account = :account AND p = :product")
+    @Query("SELECT pf FROM Portfolio pf " +
+            "JOIN pf.account a " +
+            "WHERE a.accountNumber = :accountNumber")
+    Optional<Portfolio> findByAccountNumber(@Param("accountNumber") String accountNumber);
 
-    @Query(value = """
-            SELECT p.*
-            FROM portfolio p
-            JOIN account a ON p.account_id = a.account_id
-            JOIN position pos ON pos.portfolio_id = p.portfolio_id
-            JOIN product prod ON pos.product_id = prod.product_id
-            WHERE a.account_number = '123456789012'
-            AND prod.isin = 'US0378331005';""", nativeQuery = true)
-    Optional<Portfolio> findByAccountProductIsin(@Param("account") Account account, @Param("product") Product product);
-
-    @Query(value = """
-            SELECT p.*
-            FROM portfolio p
-            JOIN account a ON p.account_id = a.account_id
-            JOIN position pos ON pos.portfolio_id = p.portfolio_id
-            JOIN product prod ON pos.product_id = prod.product_id
-            WHERE a.account_number = :accountNumber
-            AND prod.isin = :isin;""", nativeQuery = true)
-    Optional<Portfolio> findByAccountNumberProductIsin(@Param("accountNumber") String accountNumber, @Param("isin") String isin);
+    @Query("SELECT pf FROM Portfolio pf " +
+            "JOIN pf.account a " +
+            "WHERE a = :account")
+    Optional<Portfolio> findByAccount(Account account);
 
 }

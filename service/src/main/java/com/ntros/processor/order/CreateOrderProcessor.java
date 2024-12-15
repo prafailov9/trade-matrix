@@ -1,6 +1,7 @@
 package com.ntros.processor.order;
 
-import com.ntros.converter.order.OrderConverter;
+import com.ntros.converter.order.OrderDataConverter;
+import com.ntros.converter.order.OrderProcessingConverter;
 import com.ntros.service.order.OrderService;
 import com.ntros.dto.order.request.CreateOrderRequest;
 import com.ntros.dto.order.response.CreateOrderResponse;
@@ -29,18 +30,18 @@ public class CreateOrderProcessor extends AbstractOrderProcessor<CreateOrderRequ
 
     private final OrderExecution orderExecution;
     private final CreateOrderInitialization createOrderInitialization;
-    private final OrderConverter orderConverter;
 
+    private final OrderDataConverter orderDataConverter;
 
     @Autowired
     public CreateOrderProcessor(Executor executor, OrderService orderService, OrderExecution orderExecution,
                                 CreateOrderInitialization createOrderInitialization,
-                                OrderConverter orderConverter) {
+                                OrderDataConverter orderDataConverter) {
 
         super(executor, orderService);
         this.orderExecution = orderExecution;
         this.createOrderInitialization = createOrderInitialization;
-        this.orderConverter = orderConverter;
+        this.orderDataConverter = orderDataConverter;
 
     }
 
@@ -61,7 +62,7 @@ public class CreateOrderProcessor extends AbstractOrderProcessor<CreateOrderRequ
         return supplyAsync(() -> {
             CreateOrderResponse createOrderResponse = new CreateOrderResponse();
             createOrderResponse.setStatus(status);
-            createOrderResponse.setCreateOrderRequest(orderConverter.toDTO(order));
+            createOrderResponse.setOrderDTO(orderDataConverter.toDTO(order));
             return createOrderResponse;
         }, executor);
     }

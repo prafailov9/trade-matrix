@@ -998,3 +998,8 @@ insert into position (portfolio_id, product_id, quantity) values (997, 997, 27);
 insert into position (portfolio_id, product_id, quantity) values (998, 998, 64);
 insert into position (portfolio_id, product_id, quantity) values (999, 999, 96);
 insert into position (portfolio_id, product_id, quantity) values (1000, 1000, 57);
+
+insert into position (portfolio_id, product_id, quantity) values (130, 1, 9); -- acc_id: 128
+insert into position (portfolio_id, product_id, quantity) values (403, 1, 12); -- acc_id: 401
+insert into position (portfolio_id, product_id, quantity) values (737, 1, 10); -- acc_id:735
+

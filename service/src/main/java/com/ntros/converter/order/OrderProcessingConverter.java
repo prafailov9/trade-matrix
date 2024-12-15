@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import java.time.OffsetDateTime;
 
 @Component
-public class OrderConverter implements Converter<CreateOrderRequest, Order> {
+public class OrderProcessingConverter implements Converter<CreateOrderRequest, Order> {
 
 
     @Override

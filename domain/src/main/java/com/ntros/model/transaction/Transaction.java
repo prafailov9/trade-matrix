@@ -9,13 +9,14 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 
 @Entity
 @Data
 @Builder
 @RequiredArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"wallet", "order", "product", "portfolio"})
+@ToString(exclude = {"wallet", "order", "marketProduct", "portfolio"})
 public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -51,6 +52,6 @@ public class Transaction {
     private String currency;
 
     @Column(name = "transaction_date", updatable = false)
-    private Timestamp transactionDate;
+    private OffsetDateTime transactionDate;
 }
 

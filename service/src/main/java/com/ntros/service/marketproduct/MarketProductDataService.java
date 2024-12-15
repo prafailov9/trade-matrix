@@ -25,10 +25,15 @@ public class MarketProductDataService implements MarketProductService {
     }
 
     @Override
-    public CompletableFuture<MarketProduct> getMarketProductByIsinMarketCode(String isin, String marketCode) {
-        return supplyAsync(() -> marketProductRepository.findByProductIsinMarketCode(isin, marketCode)
+    public CompletableFuture<MarketProduct> getMarketProductByIsinMarketCodeAsync(String isin, String marketCode) {
+        return supplyAsync(() -> getMarketProductByIsinMarketCode(isin, marketCode));
+    }
+
+    @Override
+    public MarketProduct getMarketProductByIsinMarketCode(String isin, String marketCode) {
+        return marketProductRepository.findByProductIsinMarketCode(isin, marketCode)
                 .orElseThrow(() -> new NotFoundException(
-                        String.format("Product not found for isin: %s, market_code: %s", isin, marketCode))));
+                        String.format("Product not found for isin: %s, market_code: %s", isin, marketCode)));
     }
 
     @Override
