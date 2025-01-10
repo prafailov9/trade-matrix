@@ -4,10 +4,12 @@ import com.ntros.exception.OrderProcessingException;
 import com.ntros.model.Position;
 import com.ntros.model.order.Order;
 import com.ntros.model.order.OrderStatus;
+import com.ntros.model.order.OrderType;
 import com.ntros.model.order.Side;
 import com.ntros.model.portfolio.Portfolio;
 import com.ntros.model.transaction.Transaction;
 import com.ntros.model.transaction.TransactionType;
+import com.ntros.model.wallet.Wallet;
 import com.ntros.service.order.OrderService;
 import com.ntros.service.portfolio.PortfolioService;
 import com.ntros.service.position.PositionService;
@@ -38,7 +40,6 @@ public abstract class AbstractOrderExecutor implements OrderExecutor {
     protected final TransactionService transactionService;
     protected final PositionService positionService;
     protected final WalletService walletService;
-
     protected final PortfolioService portfolioService;
 
     @Autowired
@@ -107,18 +108,8 @@ public abstract class AbstractOrderExecutor implements OrderExecutor {
                 .map(order -> {
                     TransactionType transactionType = transactionService.getTransactionType(order.getSide().name());
                     Portfolio portfolio = portfolioService.getPortfolioByAccount(order.getWallet().getAccount());
+                    Transaction transaction = buildTransaction(order, transactionType, portfolio);
 
-                    Transaction transaction = Transaction.builder()
-                            .order(order)
-                            .marketProduct(order.getMarketProduct())
-                            .wallet(order.getWallet())
-                            .currency(order.getWallet().getCurrency().getCurrencyCode())
-                            .price(order.getPrice())
-                            .quantity(order.getFilledQuantity())
-                            .transactionType(transactionType)
-                            .portfolio(portfolio)
-                            .transactionDate(OffsetDateTime.now())
-                            .build();
                     log.info("Saving transaction: {}", transaction);
                     return transactionService.createTransaction(transaction);
                 }).toList();
@@ -129,20 +120,38 @@ public abstract class AbstractOrderExecutor implements OrderExecutor {
         // Use SELL order's price
         BigDecimal orderPrice = sellOrder.getPrice();
         BigDecimal totalCost = orderPrice.multiply(BigDecimal.valueOf(matchedQuantity));
-
         log.info("totalCost:{}, buyOrder:{}, sellOrder:{}", totalCost, buyOrder, sellOrder);
-        // update wallets for both orders
-        buyOrder.getWallet().setBalance(buyOrder.getWallet().getBalance().subtract(totalCost));
-        sellOrder.getWallet().setBalance(sellOrder.getWallet().getBalance().add(totalCost));
-        walletService.updateBalance(buyOrder.getWallet().getWalletId(), buyOrder.getWallet().getBalance());
-        walletService.updateBalance(sellOrder.getWallet().getWalletId(), sellOrder.getWallet().getBalance());
 
+        Wallet buyOrderWallet = buyOrder.getWallet();
+        Wallet sellOrderWallet = sellOrder.getWallet();
+
+        // update wallets for both orders
+        buyOrderWallet.deductBalance(totalCost);
+        sellOrderWallet.increaseBalance(totalCost);
+        walletService.updateBalance(buyOrderWallet, buyOrderWallet.getBalance());
+        walletService.updateBalance(sellOrderWallet, sellOrderWallet.getBalance());
+
+        buyOrder.adjustQuantity(matchedQuantity);
+        sellOrder.adjustQuantity(matchedQuantity);
         // OPEN buy orders don't have positions, only sell orders
-        positionService.updatePosition(sellOrder.getWallet().getAccount(),
+        positionService.updatePosition(sellOrderWallet.getAccount(),
                 sellOrder.getMarketProduct().getProduct(), matchedQuantity,
                 sellOrder.getSide());
     }
 
     protected abstract List<Order> fulfillOrders(Order incomingOrder, List<Order> matchingOrders);
 
+    private Transaction buildTransaction(Order order, TransactionType transactionType, Portfolio portfolio) {
+        return Transaction.builder()
+                .order(order)
+                .marketProduct(order.getMarketProduct())
+                .wallet(order.getWallet())
+                .currency(order.getWallet().getCurrency().getCurrencyCode())
+                .price(order.getPrice())
+                .quantity(order.getFilledQuantity())
+                .transactionType(transactionType)
+                .portfolio(portfolio)
+                .transactionDate(OffsetDateTime.now())
+                .build();
+    }
 }

@@ -60,11 +60,6 @@ public class MarketOrderExecutor extends AbstractOrderExecutor implements OrderE
     }
 
     protected void updateFundsAndAssets(Order incomingOrder, Order matchingOrder, int matchedQuantity) {
-        incomingOrder.setFilledQuantity(incomingOrder.getFilledQuantity() + matchedQuantity);
-        incomingOrder.setRemainingQuantity(incomingOrder.getRemainingQuantity() - matchedQuantity);
-
-        matchingOrder.setFilledQuantity(matchingOrder.getFilledQuantity() + matchedQuantity);
-        matchingOrder.setRemainingQuantity(matchingOrder.getRemainingQuantity() - matchedQuantity);
         if (incomingOrder.getSide().equals(Side.BUY)) {
             transferFundsAndAssets(incomingOrder, matchingOrder, matchedQuantity);
         } else {

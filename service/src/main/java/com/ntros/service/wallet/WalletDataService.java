@@ -25,7 +25,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
-import static java.util.concurrent.CompletableFuture.runAsync;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 @Service
@@ -117,16 +116,11 @@ public class WalletDataService implements WalletService {
     }
 
     @Override
-    public CompletableFuture<Void> updateBalanceAsync(int walletId, BigDecimal balance) {
-        return runAsync(() -> updateBalance(walletId, balance), executor);
-    }
-
-    @Override
-    public void updateBalance(int walletId, BigDecimal balance) {
+    public void updateBalance(Wallet wallet, BigDecimal balance) {
         try {
-            walletRepository.updateBalance(walletId, balance);
+            walletRepository.updateBalance(wallet, balance);
         } catch (DataAccessException ex) {
-            String error = String.format("Could not update balance for wallet: %s", walletId);
+            String error = String.format("Could not update balance for wallet: %s", wallet);
             log.error(error, ex);
             // rethrowing as a completion exception so it is caught by exceptionally block in thenCombine
             throw new CompletionException(error, new WalletUpdateFailedException(error));

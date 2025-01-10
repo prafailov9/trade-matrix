@@ -10,6 +10,7 @@ import com.ntros.processor.order.execution.OrderExecution;
 import com.ntros.processor.order.initialization.create.CreateOrderInitialization;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
@@ -48,6 +49,7 @@ public class CreateOrderProcessor extends AbstractOrderProcessor<CreateOrderRequ
     protected CompletableFuture<Order> process(Order order) {
         return orderExecution.executeOrder(order);
     }
+
 
     @Override
     protected CompletableFuture<CreateOrderResponse> buildOrderSuccessResponse(Order order) {

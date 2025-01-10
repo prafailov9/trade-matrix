@@ -60,4 +60,12 @@ public class Order {
     @Version
     private Long version;
 
+    public void adjustQuantity(int matchedQuantity) {
+        filledQuantity += matchedQuantity;
+        remainingQuantity -=matchedQuantity;
+    }
+
+    public OrderStatus getCurrentOrderStatus() {
+        return orderStatuses.get(orderStatuses.size() - 1);
+    }
 }

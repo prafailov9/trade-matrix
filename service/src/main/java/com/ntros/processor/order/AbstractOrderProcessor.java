@@ -9,6 +9,7 @@ import com.ntros.model.order.Order;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
@@ -52,6 +53,19 @@ public abstract class AbstractOrderProcessor<T extends OrderRequest, R extends O
                 });
     }
 
+
+    // @Override
+    //public CompletableFuture<R> processOrder(T orderRequest) {
+    //    return initialize(orderRequest)
+    //            .thenApplyAsync(order -> {
+    //                // Immediate acknowledgment to the client
+    //                sendProcessingAcknowledgment(order.getId());
+    //                // Schedule fulfillment in the background
+    //                scheduleOrderFulfillment(order);
+    //                return buildInitializationResponse(order);
+    //            }, executor)
+    //            .exceptionally(ex -> buildInitializationFailureResponse(ex));
+    //}
     protected abstract CompletableFuture<Order> initialize(T orderRequest);
 
     protected abstract CompletableFuture<Order> process(Order order);

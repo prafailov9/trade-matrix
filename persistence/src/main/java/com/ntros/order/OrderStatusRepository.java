@@ -7,13 +7,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface OrderStatusRepository extends JpaRepository<OrderStatus, Integer> {
 
     @Query(value = "SELECT os FROM OrderStatus os " +
             "WHERE os.order = :order")
-    Optional<OrderStatus> findOneByOrder(@Param("order") Order order);
+    List<OrderStatus> findAllByOrder(@Param("order") Order order);
 
     @Query(value = "SELECT os FROM OrderStatus os " +
             "WHERE os.order = :order AND os.currentStatus = :currentStatus")

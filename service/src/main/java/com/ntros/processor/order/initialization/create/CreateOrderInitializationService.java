@@ -26,7 +26,7 @@ public class CreateOrderInitializationService implements CreateOrderInitializati
     }
 
     /**
-     * Creates an initializer service object based on the order's transaction type.
+     * Creates an initializer based on the order's transaction type.
      * Matches the transactionType name to the initializer service's name(BUY/SELL)
      * @param createOrderRequest - order to initialize
      * @return - initialized order object

@@ -31,4 +31,12 @@ public class Wallet {
 
     @Version
     private Integer version;
+
+    public void deductBalance(BigDecimal amount) {
+        balance = balance.subtract(amount);
+    }
+
+    public void increaseBalance(BigDecimal amount) {
+        balance = balance.add(amount);
+    }
 }

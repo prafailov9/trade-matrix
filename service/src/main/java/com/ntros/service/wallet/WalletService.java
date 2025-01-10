@@ -27,8 +27,7 @@ public interface WalletService {
 
     CompletableFuture<Integer> deleteWallet(final UniqueWalletDTO uniqueWalletDTO);
 
-    CompletableFuture<Void> updateBalanceAsync(final int walletId, final BigDecimal balance);
-    void updateBalance(int walletId, BigDecimal balance);
+    void updateBalance(Wallet wallet, BigDecimal balance);
     CompletableFuture<Wallet> validateBalance(Wallet wallet, BigDecimal price, int quantity);
 
 }

@@ -44,19 +44,23 @@ public abstract class AbstractCreateOrderInitializer implements CreateOrderIniti
     @Override
     public CompletableFuture<Order> initialize(CreateOrderRequest request) {
         return supplyAsync(() -> {
-            Order.OrderBuilder orderBuilder = Order.builder();
             log.info("Initializing order: {}", request);
+
+            Order.OrderBuilder orderBuilder = Order.builder();
             validateOrderRequest(request);
 
             Wallet wallet = walletService.getWalletByCurrencyCodeAccountNumber(request.getCurrencyCode(), request.getAccountNumber());
             orderBuilder.wallet(wallet);
+
             MarketProduct marketProduct = marketProductService.getMarketProductByIsinMarketCode(request.getProductIsin(), request.getMarketCode());
             orderBuilder.marketProduct(marketProduct);
+
             OrderType orderType = orderService.getOrderType(request.getOrderType());
             orderBuilder.orderType(orderType);
 
             Order initOrder = createOpenOrderAndStatus(orderProcessingConverter.toModel(request, orderBuilder));
             log.info("Order Initialized: {}", initOrder);
+
             return initOrder;
         }, executor);
     }

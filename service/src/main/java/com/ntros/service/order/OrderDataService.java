@@ -121,7 +121,7 @@ public class OrderDataService implements OrderService {
     }
 
     @Override
-    public CompletableFuture<OrderStatus> getOrderStatusByOrder(Order order) {
+    public CompletableFuture<List<OrderStatus>> getAllByOrder(Order order) {
         return supplyAsync(() -> getOrderStatus(order), executor);
     }
 
@@ -149,11 +149,12 @@ public class OrderDataService implements OrderService {
                 : updateOrderStatus(order, CurrentOrderStatus.PARTIALLY_FILLED);
     }
 
-    private OrderStatus getOrderStatus(Order order) {
-        return orderStatusRepository.findOneByOrder(order)
-                .orElseThrow(() ->
-                        new OrderStatusNotFoundException(
-                                String.format("status not found for order: %s", order)));
+    @Override
+    public void transferFunds(Order buyOrder, Order sellOrder, int matchedQuantity) {
+    }
+
+    private List<OrderStatus> getOrderStatus(Order order) {
+        return orderStatusRepository.findAllByOrder(order);
     }
 
     private OrderStatus getOrderStatus(Order order, CurrentOrderStatus currentOrderStatus) {

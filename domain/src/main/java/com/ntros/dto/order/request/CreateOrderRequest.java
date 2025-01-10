@@ -20,10 +20,10 @@ public class CreateOrderRequest extends OrderRequest {
     @NotNull
     @Min(value = 1, message = "quantity cannot be less than 1.")
     private int quantity;
-    private int filledQuantity;
-    private int remainingQuantity;
 
     @NotNull(message = "tx_type cannot be null.")
     private String transactionType;
+
+    private String callbackUrl;
 
 }

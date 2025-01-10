@@ -17,10 +17,12 @@ public interface OrderService {
     Order updateOrder(Order order);
     CompletableFuture<List<Order>> getAllOrders();
     OrderType getOrderType(String type);
-    CompletableFuture<OrderStatus> getOrderStatusByOrder(Order order);
+    CompletableFuture<List<OrderStatus>> getAllByOrder(Order order);
 
     OrderStatus updateOrderStatus(Order order, CurrentOrderStatus orderStatus);
     OrderStatus determineAndUpdateCurrentStatus(Order order);
+
+    void transferFunds(Order buyOrder, Order sellOrder, int matchedQuantity);
 
     /**
      * Order Matching Logic

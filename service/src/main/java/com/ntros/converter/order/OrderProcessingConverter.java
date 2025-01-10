@@ -21,8 +21,6 @@ public class OrderProcessingConverter implements Converter<CreateOrderRequest, O
         createOrderRequest.setQuantity(model.getQuantity());
         createOrderRequest.setAccountNumber(model.getWallet().getAccount().getAccountNumber());
         createOrderRequest.setCurrencyCode(model.getWallet().getCurrency().getCurrencyCode());
-        createOrderRequest.setFilledQuantity(model.getFilledQuantity());
-        createOrderRequest.setRemainingQuantity(model.getRemainingQuantity());
         createOrderRequest.setProductIsin(model.getMarketProduct().getProduct().getIsin());
         createOrderRequest.setTransactionType(model.getSide().name());
 
@@ -37,8 +35,6 @@ public class OrderProcessingConverter implements Converter<CreateOrderRequest, O
     public Order toModel(CreateOrderRequest orderRequest, Order.OrderBuilder orderBuilder) {
         Order order = orderBuilder
                 .quantity(orderRequest.getQuantity())
-                .filledQuantity(orderRequest.getFilledQuantity())
-                .remainingQuantity(orderRequest.getRemainingQuantity())
                 .price(orderRequest.getPrice())
                 .placedAt(OffsetDateTime.now())
                 .side(Side.valueOf(orderRequest.getTransactionType().toUpperCase()))
