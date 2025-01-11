@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import static java.util.concurrent.CompletableFuture.supplyAsync;
+
 @RestController
 public abstract class AbstractOrderProcessorController<T extends OrderRequest, R extends OrderResponse> extends AbstractApiController implements OrderProcessorController<T> {
 
@@ -26,7 +28,7 @@ public abstract class AbstractOrderProcessorController<T extends OrderRequest, R
 
     @Override
     public CompletableFuture<ResponseEntity<?>> process(T orderRequest) {
-        return orderProcessor.processOrder(orderRequest)
+        return supplyAsync(() -> orderProcessor.processOrder(orderRequest), executor)
                 .handleAsync((this::handleResponseAsync), executor);
     }
 

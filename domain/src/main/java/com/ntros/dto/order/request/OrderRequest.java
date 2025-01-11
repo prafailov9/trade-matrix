@@ -27,5 +27,8 @@ public abstract class OrderRequest {
     @NotNull(message = "market code cannot be null.")
     protected String marketCode;
 
+    @NotNull(message = "Callback URL cannot be null.")
+    private String callbackUrl;
+
 
 }

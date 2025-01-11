@@ -42,27 +42,25 @@ public abstract class AbstractCreateOrderInitializer implements CreateOrderIniti
     protected MarketProductService marketProductService;
 
     @Override
-    public CompletableFuture<Order> initialize(CreateOrderRequest request) {
-        return supplyAsync(() -> {
-            log.info("Initializing order: {}", request);
+    public Order initialize(CreateOrderRequest request) {
+        log.info("Initializing order: {}", request);
 
-            Order.OrderBuilder orderBuilder = Order.builder();
-            validateOrderRequest(request);
+        Order.OrderBuilder orderBuilder = Order.builder();
+        validateOrderRequest(request);
 
-            Wallet wallet = walletService.getWalletByCurrencyCodeAccountNumber(request.getCurrencyCode(), request.getAccountNumber());
-            orderBuilder.wallet(wallet);
+        Wallet wallet = walletService.getWalletByCurrencyCodeAccountNumber(request.getCurrencyCode(), request.getAccountNumber());
+        orderBuilder.wallet(wallet);
 
-            MarketProduct marketProduct = marketProductService.getMarketProductByIsinMarketCode(request.getProductIsin(), request.getMarketCode());
-            orderBuilder.marketProduct(marketProduct);
+        MarketProduct marketProduct = marketProductService.getMarketProductByIsinMarketCode(request.getProductIsin(), request.getMarketCode());
+        orderBuilder.marketProduct(marketProduct);
 
-            OrderType orderType = orderService.getOrderType(request.getOrderType());
-            orderBuilder.orderType(orderType);
+        OrderType orderType = orderService.getOrderType(request.getOrderType());
+        orderBuilder.orderType(orderType);
 
-            Order initOrder = createOpenOrderAndStatus(orderProcessingConverter.toModel(request, orderBuilder));
-            log.info("Order Initialized: {}", initOrder);
+        Order initOrder = createOpenOrderAndStatus(orderProcessingConverter.toModel(request, orderBuilder));
+        log.info("Order Initialized: {}", initOrder);
 
-            return initOrder;
-        }, executor);
+        return initOrder;
     }
 
     protected abstract void validateOrderRequest(CreateOrderRequest request);

@@ -14,7 +14,7 @@ public interface OrderService {
 
     Order getOrder(String accountNumber, String productIsin);
     Order createOrder(Order order);
-    Order updateOrder(Order order);
+    Order updateOrder(Integer orderId, Order order);
     CompletableFuture<List<Order>> getAllOrders();
     OrderType getOrderType(String type);
     CompletableFuture<List<OrderStatus>> getAllByOrder(Order order);

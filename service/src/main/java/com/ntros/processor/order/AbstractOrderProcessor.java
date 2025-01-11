@@ -1,33 +1,36 @@
 package com.ntros.processor.order;
 
-import com.ntros.service.order.OrderService;
 import com.ntros.dto.order.request.OrderRequest;
 import com.ntros.dto.order.response.OrderResponse;
-import com.ntros.dto.order.response.Status;
-import com.ntros.exception.OrderProcessingException;
 import com.ntros.model.order.Order;
+import com.ntros.processor.order.notification.Notifier;
+import com.ntros.service.order.OrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import static java.util.concurrent.CompletableFuture.runAsync;
+
 @Service
 @Slf4j
-public abstract class AbstractOrderProcessor<T extends OrderRequest, R extends OrderResponse> implements OrderProcessor<T, R> {
+public abstract class AbstractOrderProcessor<S extends OrderRequest, R extends OrderResponse> implements OrderProcessor<S, R> {
 
     protected final Executor executor;
     protected final OrderService orderService;
+    protected final Notifier<Order> orderNotifier;
 
     @Autowired
     public AbstractOrderProcessor(@Qualifier("taskExecutor") Executor executor,
-                                  OrderService orderService) {
+                                  OrderService orderService,
+                                  Notifier<Order> orderNotifier) {
 
         this.executor = executor;
         this.orderService = orderService;
+        this.orderNotifier = orderNotifier;
     }
 
     /**
@@ -35,42 +38,39 @@ public abstract class AbstractOrderProcessor<T extends OrderRequest, R extends O
      * Process incoming order request.
      * - Initialize order, perform validations. Once initialized, it will be placed with OPEN status.
      * - After that, order fulfillment begins. It will be fulfilled based on its directive(BUY/SELL)
-     *      and type(MARKET, LIMIT, STOP)
+     * and type(MARKET, LIMIT, STOP)
      * - Build response
+     *
      * @param orderRequest - incoming order
      * @return Order Response
-     *
-     * TODO: Detach init and fulfillment(processing). After Init, return response immediately, process order in background.
+     * <p>
      */
     @Override
-    public CompletableFuture<R> processOrder(T orderRequest) {
-        return initialize(orderRequest)
-                .thenComposeAsync(this::process, executor)
-                .thenComposeAsync(this::buildOrderSuccessResponse, executor)
-                .exceptionally(ex -> {
-                    log.error("Failed to process order {}. Error:", orderRequest, ex.getCause());
-                    return buildOrderFailedResponse(ex.getCause());
-                });
+    public R processOrder(S orderRequest) {
+        try {
+            Order initializedOrder = initialize(orderRequest);
+            runAsync(() -> {
+                try {
+                    Order processedOrder = process(initializedOrder).join();
+                    log.info("Successfully processed order: [{}]", processedOrder);
+
+                    orderNotifier.notify(processedOrder, orderRequest.getCallbackUrl());
+                } catch (Exception ex) {
+                    log.error("Failed to process order with id: {}", initializedOrder.getOrderId(), ex);
+                }
+            }, executor);
+            return buildOrderSuccessResponse(initializedOrder);
+        } catch (Exception ex) {
+            log.error("Failed to initialize order {}. Error:", orderRequest, ex);
+            return buildOrderFailedResponse(ex);
+        }
     }
 
-
-    // @Override
-    //public CompletableFuture<R> processOrder(T orderRequest) {
-    //    return initialize(orderRequest)
-    //            .thenApplyAsync(order -> {
-    //                // Immediate acknowledgment to the client
-    //                sendProcessingAcknowledgment(order.getId());
-    //                // Schedule fulfillment in the background
-    //                scheduleOrderFulfillment(order);
-    //                return buildInitializationResponse(order);
-    //            }, executor)
-    //            .exceptionally(ex -> buildInitializationFailureResponse(ex));
-    //}
-    protected abstract CompletableFuture<Order> initialize(T orderRequest);
+    protected abstract Order initialize(S orderRequest);
 
     protected abstract CompletableFuture<Order> process(Order order);
 
-    protected abstract CompletableFuture<R> buildOrderSuccessResponse(Order order);
+    protected abstract R buildOrderSuccessResponse(Order order);
 
     protected abstract R buildOrderFailedResponse(Throwable ex);
 

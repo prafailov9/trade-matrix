@@ -7,6 +7,6 @@ import java.util.concurrent.CompletableFuture;
 
 public interface CreateOrderInitializer {
 
-    CompletableFuture<Order> initialize(CreateOrderRequest createOrderRequest);
+    Order initialize(CreateOrderRequest createOrderRequest);
 
 }

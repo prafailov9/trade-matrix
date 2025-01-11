@@ -77,6 +77,8 @@ public abstract class AbstractOrderExecutor implements OrderExecutor {
         return savedOrders.get(savedOrders.size() - 1); // last order is the incoming one
     }
 
+    protected abstract List<Order> fulfillOrders(Order incomingOrder, List<Order> matchingOrders);
+
     private List<Order> saveFulfilledOrders(List<Order> fulfilledOrders) {
         return fulfilledOrders.stream().map(order -> {
             OrderStatus status = orderService.determineAndUpdateCurrentStatus(order);
@@ -133,13 +135,11 @@ public abstract class AbstractOrderExecutor implements OrderExecutor {
 
         buyOrder.adjustQuantity(matchedQuantity);
         sellOrder.adjustQuantity(matchedQuantity);
-        // OPEN buy orders don't have positions, only sell orders
+        // OPEN buy orders don't have positions
         positionService.updatePosition(sellOrderWallet.getAccount(),
                 sellOrder.getMarketProduct().getProduct(), matchedQuantity,
                 sellOrder.getSide());
     }
-
-    protected abstract List<Order> fulfillOrders(Order incomingOrder, List<Order> matchingOrders);
 
     private Transaction buildTransaction(Order order, TransactionType transactionType, Portfolio portfolio) {
         return Transaction.builder()

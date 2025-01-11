@@ -33,7 +33,7 @@ public class CreateOrderInitializationService implements CreateOrderInitializati
      */
     @Override
     @Transactional
-    public CompletableFuture<Order> initializeOrder(CreateOrderRequest createOrderRequest) {
+    public Order initializeOrder(CreateOrderRequest createOrderRequest) {
         CreateOrderInitializer initializer = createOrderInitializers.get(createOrderRequest.getTransactionType().toLowerCase());
         if (initializer == null) {
             throw new IllegalArgumentException("Unknown order type: " + createOrderRequest.getTransactionType());

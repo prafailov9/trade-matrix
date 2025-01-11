@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import static java.lang.String.format;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 @Service
@@ -48,10 +49,10 @@ public class OrderDataService implements OrderService {
     public Order createOrder(Order order) {
         try {
             Order saved = orderRepository.save(order);
-            log.info("[IN OrderService.createOrder()]\nSaved order: {}", saved);
+            log.info("Saved order: {}", saved);
             return saved;
         } catch (DataIntegrityViolationException | OptimisticLockException ex) {
-            log.error("[IN OrderService.createOrder()]\nCould not save order {}. {}", order, ex.getMessage(), ex);
+            log.error("Could not save order {}. {}", order, ex.getMessage(), ex);
             throw handleOptimisticLockAndThrow(ex); // rethrowing lock exception to handle retries
         }
 
@@ -62,27 +63,27 @@ public class OrderDataService implements OrderService {
         return orderRepository.findByAccountNumberProductIsinOrderStatus(accountNumber, productIsin)
                 .orElseThrow(() ->
                         new OrderNotFoundException(
-                                String.format("Could not find order for AN=%s, isin=%s", accountNumber, productIsin)));
+                                format("Could not find order for AN=%s, isin=%s", accountNumber, productIsin)));
     }
 
     @Override
-    public Order updateOrder(Order order) {
-        Order savedOrder = orderRepository.findById(order.getOrderId())
+    public Order updateOrder(Integer orderId, Order order) {
+        Order existingOrder = orderRepository.findById(orderId)
                 .orElseThrow(() ->
                         new OrderNotFoundException(
-                                String.format("Order not found %s", order)));
+                                format("Order not found for id: %s", orderId)));
 
         // update all fields
-        savedOrder.setOrderType(order.getOrderType());
-        savedOrder.setWallet(order.getWallet());
-        savedOrder.setPrice(order.getPrice());
-        savedOrder.setMarketProduct(order.getMarketProduct());
-        savedOrder.setQuantity(order.getQuantity());
-        savedOrder.setFilledQuantity(order.getFilledQuantity());
-        savedOrder.setRemainingQuantity(order.getRemainingQuantity());
-        savedOrder.setPlacedAt(order.getPlacedAt());
+        existingOrder.setOrderType(order.getOrderType());
+        existingOrder.setWallet(order.getWallet());
+        existingOrder.setPrice(order.getPrice());
+        existingOrder.setMarketProduct(order.getMarketProduct());
+        existingOrder.setQuantity(order.getQuantity());
+        existingOrder.setFilledQuantity(order.getFilledQuantity());
+        existingOrder.setRemainingQuantity(order.getRemainingQuantity());
+        existingOrder.setPlacedAt(order.getPlacedAt());
 
-        return orderRepository.save(savedOrder);
+        return orderRepository.save(existingOrder);
     }
 
     @Override
@@ -117,7 +118,7 @@ public class OrderDataService implements OrderService {
     @Override
     public OrderType getOrderType(String type) {
         return orderTypeRepository.findOneByOrderTypeName(type)
-                .orElseThrow(() -> new OrderTypeNotFoundException(String.format("Order type not found for: %s", type)));
+                .orElseThrow(() -> new OrderTypeNotFoundException(format("Order type not found for: %s", type)));
     }
 
     @Override
@@ -134,7 +135,7 @@ public class OrderDataService implements OrderService {
         } catch (DataIntegrityViolationException ex) {
             log.info("[IN OrderDataService.updateOrderStatus()]\n Failed to update status:{} for order:{}", orderStatus, order);
             throw new OrderStatusCreateFailedException(
-                    String.format(
+                    format(
                             "Could not update order status with given values: order: %s, status: %s",
                             order,
                             orderStatus.name()),
@@ -161,7 +162,7 @@ public class OrderDataService implements OrderService {
         return orderStatusRepository.findOneByOrderCurrentStatus(order, currentOrderStatus)
                 .orElseThrow(() ->
                         new OrderStatusNotFoundException(
-                                String.format("status not found for order: %s", order)));
+                                format("status not found for order: %s", order)));
     }
 
     private RuntimeException handleOptimisticLockAndThrow(RuntimeException ex) {

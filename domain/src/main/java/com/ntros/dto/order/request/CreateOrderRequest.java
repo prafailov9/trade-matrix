@@ -23,7 +23,4 @@ public class CreateOrderRequest extends OrderRequest {
 
     @NotNull(message = "tx_type cannot be null.")
     private String transactionType;
-
-    private String callbackUrl;
-
 }

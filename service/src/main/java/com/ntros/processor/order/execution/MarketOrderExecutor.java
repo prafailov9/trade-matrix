@@ -33,10 +33,11 @@ public class MarketOrderExecutor extends AbstractOrderExecutor implements OrderE
      * Matched orders are sorted by ASC price, meaning the incoming order will be fulfilled with the best possible prices.
      * Order fulfillment continues until the incoming order is fully or partially fulfilled.
      * Partial fulfillment means there are no remaining matching
-     * orders to fulfill the incoming order ->matchingOrders.remainingQuantity < incomingOrder.remainingQuantity
+     * orders to fulfill the incoming order -> matchingOrders.remainingQuantity < incomingOrder.remainingQuantity
+     * <p>
+     * //     * @param incomingOrder  - order to fulfill
+     * //     * @param matchingOrders - matching orders, opposite side to the incoming order to fulfill
      *
-//     * @param incomingOrder  - order to fulfill
-//     * @param matchingOrders - matching orders, opposite side to the incoming order to fulfill
      * @return fulfilled incoming order
      */
     @Override
@@ -45,14 +46,13 @@ public class MarketOrderExecutor extends AbstractOrderExecutor implements OrderE
         int incomingOrderRemainingQuantity = incomingOrder.getQuantity();
 
         for (Order matchingOrder : matchingOrders) {
-            log.info("[IN fulfillOrders()]\nFulfilling orders. incoming:{}, matching:{}", incomingOrder, matchingOrder);
+            log.info("Fulfilling orders. incoming:{}, matching:{}", incomingOrder, matchingOrder);
             if (incomingOrderRemainingQuantity > 0) {
                 int matchedQuantity = Math.min(incomingOrderRemainingQuantity, matchingOrder.getRemainingQuantity());
                 incomingOrderRemainingQuantity -= matchedQuantity;
 
                 updateFundsAndAssets(incomingOrder, matchingOrder, matchedQuantity);
             }
-
         }
 
         matchingOrders.add(incomingOrder);
