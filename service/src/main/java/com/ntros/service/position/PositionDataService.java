@@ -1,8 +1,8 @@
 package com.ntros.service.position;
 
+import com.ntros.exception.InvalidArgumentException;
+import com.ntros.exception.NotFoundException;
 import com.ntros.position.PositionRepository;
-import com.ntros.exception.InsufficientAssetsException;
-import com.ntros.exception.PositionNotFoundException;
 import com.ntros.model.Position;
 import com.ntros.model.account.Account;
 import com.ntros.model.order.Side;
@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import static java.lang.String.format;
 import static java.util.concurrent.CompletableFuture.runAsync;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
@@ -61,7 +62,7 @@ public class PositionDataService implements PositionService {
     public Position getPositionByAccountAndProduct(Account account, Product product) {
         return positionRepository.findOneByAccountProduct(account, product)
                 .orElseThrow(() ->
-                        new PositionNotFoundException(String.format("Position not found for account: %s, product: %s",
+                        NotFoundException.with(format("Position not found for account: %s, product: %s",
                                 account.getAccountNumber(),
                                 product.getIsin())));
     }
@@ -69,16 +70,16 @@ public class PositionDataService implements PositionService {
     @Override
     public CompletableFuture<Position> getPositionByAccountNumberAndProductIsinAsync(String accountNumber, String isin) {
         return supplyAsync(() -> positionRepository.findOneByAccountNumberProductIsin(accountNumber, isin)
-                        .orElseThrow(() -> new PositionNotFoundException(
-                                String.format("Could not find position for AN=%s, isin:%s", accountNumber, isin))),
+                        .orElseThrow(() -> NotFoundException.with(
+                                format("Could not find position for AN=%s, isin:%s", accountNumber, isin))),
                 executor);
     }
 
     @Override
     public CompletableFuture<Position> getPositionByAccountAndProductIsinAsync(Account account, String isin) {
         return supplyAsync(() -> positionRepository.findOneByAccountProductIsin(account, isin)
-                        .orElseThrow(() -> new PositionNotFoundException(
-                                String.format("Could not find position for AN=%s, isin:%s", account, isin))),
+                        .orElseThrow(() -> NotFoundException.with(
+                                format("Could not find position for AN=%s, isin:%s", account, isin))),
                 executor);
     }
 
@@ -91,15 +92,15 @@ public class PositionDataService implements PositionService {
     public int getQuantityByAccountNumberAndProductIsin(String accountNumber, String isin) {
         return positionRepository.findQuantityByAccountNumberProductIsin(accountNumber, isin)
                 .orElseThrow(() ->
-                        new PositionNotFoundException(
-                                String.format("Could not get position quantity for AN:%s and ISIN:%s", accountNumber, isin)));
+                        NotFoundException.with(
+                                format("Could not get position quantity for AN:%s and ISIN:%s", accountNumber, isin)));
     }
 
     @Override
     public CompletableFuture<Boolean> compareCurrentProductQuantityAsync(String accountNumber, String isin, int orderQuantity) {
 
         return supplyAsync(() -> positionRepository.compareCurrentProductQuantity(orderQuantity, accountNumber, isin)
-                .orElseThrow(() -> new PositionNotFoundException("could not get position quantity")));
+                .orElseThrow(() -> NotFoundException.with("could not get position quantity")));
     }
 
     @Override
@@ -116,7 +117,8 @@ public class PositionDataService implements PositionService {
             if (position.getQuantity() < matchedOrderQuantity) {
                 log.info("Position: {} for account: {} on product: {} has Insufficient assets. Assets to match:{}",
                         position, account, product, matchedOrderQuantity);
-                throw new InsufficientAssetsException("Insufficient assets to transfer");
+                throw InvalidArgumentException.with(format("Insufficient assets to transfer. Position assets: %s, Order assets: %s",
+                        position.getQuantity(), matchedOrderQuantity));
             }
             position.setQuantity(position.getQuantity() - matchedOrderQuantity);
 

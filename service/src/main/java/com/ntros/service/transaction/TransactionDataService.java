@@ -1,7 +1,7 @@
 package com.ntros.service.transaction;
 
-import com.ntros.exception.FailedOrdersDeleteException;
-import com.ntros.exception.TransactionSaveFailedException;
+import com.ntros.exception.DataConstraintFailureException;
+import com.ntros.exception.NotFoundException;
 import com.ntros.model.transaction.Transaction;
 import com.ntros.model.transaction.TransactionType;
 import com.ntros.transaction.TransactionRepository;
@@ -51,7 +51,7 @@ public class TransactionDataService implements TransactionService {
         } catch (DataIntegrityViolationException ex) {
             log.error("Error while creating transaction {} for [product={}, account={}]", transaction,
                     transaction.getMarketProduct(), transaction.getWallet().getAccount());
-            throw new TransactionSaveFailedException(ex.getMessage(), ex);
+            throw DataConstraintFailureException.with(ex.getMessage(), ex);
         }
     }
 
@@ -78,7 +78,7 @@ public class TransactionDataService implements TransactionService {
     @Override
     public TransactionType getTransactionType(String type) {
         return transactionTypeRepository.findOneByTransactionTypeName(type)
-                .orElseThrow(() -> new FailedOrdersDeleteException(String.format("Could not find tx type with name: %s", type)));
+                .orElseThrow(() -> NotFoundException.with(String.format("Could not find tx type with name: %s", type)));
     }
 
 }

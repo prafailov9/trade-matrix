@@ -25,6 +25,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
+import static java.lang.String.format;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 @Service
@@ -53,8 +54,13 @@ public class WalletDataService implements WalletService {
 
     @Override
     public CompletableFuture<Wallet> getWallet(int walletId) {
-        return supplyAsync(() -> walletRepository.findById(walletId)
-                .orElseThrow(() -> new WalletNotFoundException("Wallet not found for id: " + walletId)), executor);
+        return supplyAsync(
+                () -> walletRepository.findById(walletId)
+                        .orElseThrow(() -> {
+                            String err = format("Wallet not found for id: %s", walletId);
+                            log.error(err);
+                            return NotFoundException.with(err);
+                        }), executor);
     }
 
     @Override
@@ -64,22 +70,33 @@ public class WalletDataService implements WalletService {
 
     @Override
     public Wallet getWalletByCurrencyCodeAccountNumber(String currencyCode, String accountNumber) {
-        return walletRepository.findByCurrencyCodeAccountNumber(currencyCode, accountNumber)
-                .orElseThrow(() ->
-                        new WalletNotFoundException(
-                                String.format("Wallet not found for [%s, %s]", currencyCode, accountNumber)));
+        return walletRepository
+                .findByCurrencyCodeAccountNumber(currencyCode, accountNumber)
+                .orElseThrow(() -> {
+                    String err = format("Wallet not found for [%s, %s]", currencyCode, accountNumber);
+                    log.error(err);
+                    return NotFoundException.with(err);
+                });
     }
 
     @Override
     public CompletableFuture<Wallet> getWalletByCurrencyNameAndAccountId(String currencyName, int accountId) {
         return supplyAsync(() -> walletRepository.findByCurrencyNameAccountId(currencyName, accountId)
-                .orElseThrow(() -> new WalletNotFoundForCurrencyAndAccountException(currencyName, accountId)), executor);
+                .orElseThrow(() -> {
+                    String err = format("Wallet not found for [%s, %s]", currencyName, accountId);
+                    log.error(err);
+                    return NotFoundException.with(err);
+                }), executor);
     }
 
     @Override
     public CompletableFuture<Wallet> getWalletByCurrencyCodeAndAccountId(String currencyCode, int accountId) {
         return supplyAsync(() -> walletRepository.findByCurrencyCodeAccountId(currencyCode, accountId)
-                .orElseThrow(() -> new WalletNotFoundForCurrencyAndAccountException(currencyCode, accountId)), executor);
+                .orElseThrow(() -> {
+                    String err = format("Wallet not found for [%s, %s]", currencyCode, accountId);
+                    log.error(err);
+                    return NotFoundException.with(err);
+                }), executor);
     }
 
     @Override
@@ -91,8 +108,9 @@ public class WalletDataService implements WalletService {
     public CompletableFuture<List<Wallet>> getAllWalletsByAccount(final int accountId) {
         return supplyAsync(() -> walletRepository.findAllByAccount(accountId), executor)
                 .exceptionally(ex -> {
-                    log.error(ex.getMessage(), ex.getCause());
-                    throw new WalletNotFoundForAccountException(accountId, ex.getCause());
+                    String err = format("Wallets for Account with ID: %s not found.", accountId);
+                    log.error(err, ex.getCause());
+                    throw NotFoundException.with(err);
                 });
     }
 
@@ -112,7 +130,11 @@ public class WalletDataService implements WalletService {
 
     @Override
     public CompletableFuture<Integer> deleteWallet(UniqueWalletDTO uniqueWalletDTO) {
-        return supplyAsync(() -> delete(uniqueWalletDTO.getCurrencyCode(), uniqueWalletDTO.getAccountNumber()), executor);
+        return supplyAsync(() ->
+                        delete(
+                                uniqueWalletDTO.getCurrencyCode(),
+                                uniqueWalletDTO.getAccountNumber()),
+                executor);
     }
 
     @Override
@@ -120,10 +142,10 @@ public class WalletDataService implements WalletService {
         try {
             walletRepository.updateBalance(wallet, balance);
         } catch (DataAccessException ex) {
-            String error = String.format("Could not update balance for wallet: %s", wallet);
-            log.error(error, ex);
+            String err = format("Could not update balance for wallet: %s", wallet);
+            log.error(err, ex);
             // rethrowing as a completion exception so it is caught by exceptionally block in thenCombine
-            throw new CompletionException(error, new WalletUpdateFailedException(error));
+            throw new CompletionException(err, DataAccessViolationException.with(err));
         }
     }
 
@@ -132,7 +154,10 @@ public class WalletDataService implements WalletService {
         return supplyAsync(() -> {
             BigDecimal totalOrderValue = price.multiply(BigDecimal.valueOf(quantity));
             if (wallet.getBalance().compareTo(totalOrderValue) < 0) {
-                throw new InsufficientFundsException("Not enough balance for order.");
+                String err = format("Not enough balance for order. Current balance: [%s], Order price: [%s]",
+                        wallet.getBalance(), totalOrderValue);
+                log.error(err);
+                throw InvalidArgumentException.with(err);
             }
             return wallet;
         }, executor);
@@ -145,21 +170,22 @@ public class WalletDataService implements WalletService {
             affectedRows = walletRepository.deleteByCurrencyCodeAccountNumber(code, an);
             if (affectedRows > 1) {
                 log.error("Modified {} rows after delete.", affectedRows);
-                throw new DataConstraintViolationException(String.format("Deleted multiple wallets for [%s, %s]", code, an));
+                throw DataConstraintFailureException.with(format("Deleted multiple wallets for [%s, %s]", code, an));
             }
-            log.error("Successfully deleted {} wallet for account: {}", code, an);
+            log.info("Successfully deleted {} wallet for account: {}", code, an);
         } catch (DataAccessException ex) {
-            log.error("Could not delete wallet for {}, {}", code, an, ex);
-            throw new WalletDeleteFailedException(code, an, ex);
+            String err = format("Could not delete wallet for currency code: %s and account number: %s", code, an);
+            log.error(err, ex);
+            throw DataConstraintFailureException.with(err, ex);
         }
         return affectedRows;
     }
 
     private Wallet getAndSetCurrencyAccount(String currencyCode, String accountNumber, Wallet wallet) {
         Currency currency = currencyRepository.findByCurrencyCode(currencyCode).orElseThrow(() ->
-                new CurrencyNotFoundException(String.format("Currency [%s] doesnt exist.", currencyCode)));
+                NotFoundException.with(format("Currency [%s] doesnt exist.", currencyCode)));
         Account account = accountRepository.findByAccountNumber(accountNumber).orElseThrow(() ->
-                new AccountNotFoundException(String.format("Account with AN:[%s] doesnt exist.", accountNumber)));
+                NotFoundException.with(format("Account with AN:[%s] doesnt exist.", accountNumber)));
 
         wallet.setCurrency(currency);
         wallet.setAccount(account);
@@ -182,9 +208,9 @@ public class WalletDataService implements WalletService {
             return walletRepository.save(wallet);
         } catch (DataIntegrityViolationException ex) {
             log.error("Failed to save wallet: {}", wallet);
-            throw new WalletCreateFailedException(String.format("Could not create wallet for currency and account [%s, %s]",
-                    wallet.getCurrency().getCurrencyCode(),
-                    wallet.getAccount().getAccountNumber()),
+            throw DataConstraintFailureException.with(format("Could not create wallet for currency and account [%s, %s]",
+                            wallet.getCurrency().getCurrencyCode(),
+                            wallet.getAccount().getAccountNumber()),
                     ex.getCause());
         }
     }

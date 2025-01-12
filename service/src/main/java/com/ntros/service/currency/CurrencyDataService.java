@@ -2,8 +2,8 @@ package com.ntros.service.currency;
 
 import com.ntros.account.WalletRepository;
 import com.ntros.currency.CurrencyRepository;
-import com.ntros.exception.CurrencyNotFoundException;
-import com.ntros.exception.FailedToActivateAllCurrenciesException;
+import com.ntros.exception.DataAccessViolationException;
+import com.ntros.exception.NotFoundException;
 import com.ntros.model.currency.Currency;
 import com.ntros.model.wallet.Wallet;
 import jakarta.transaction.Transactional;
@@ -15,8 +15,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 
+import static java.lang.String.format;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 @Service
@@ -39,13 +39,13 @@ public class CurrencyDataService implements CurrencyService {
     @Override
     public CompletableFuture<Currency> getCurrencyByCodeAsync(String code) {
         return supplyAsync(() -> currencyRepository.findByCurrencyCode(code)
-                .orElseThrow(() -> new CurrencyNotFoundException(String.format("Could not find currency with code:%s", code))));
+                .orElseThrow(() -> NotFoundException.with(format("Could not find currency with code:%s", code))));
     }
 
     @Override
     public Currency getCurrencyByCode(String code) {
         return currencyRepository.findByCurrencyCode(code)
-                .orElseThrow(() -> new CurrencyNotFoundException(String.format("Could not find currency with code:%s", code)));
+                .orElseThrow(() -> NotFoundException.with(format("Could not find currency with code:%s", code)));
     }
 
     @Override
@@ -56,7 +56,7 @@ public class CurrencyDataService implements CurrencyService {
                 log.info("All currencies activated successfully");
             } catch (DataAccessException ex) {
                 log.error("Error occurred while activating currencies: {}", ex.getMessage(), ex);
-                throw new FailedToActivateAllCurrenciesException(ex.getMessage(), ex);
+                throw DataAccessViolationException.with(ex.getMessage(), ex);
             }
         });
     }
@@ -71,8 +71,9 @@ public class CurrencyDataService implements CurrencyService {
                 walletRepository.deleteAll(wallets);
                 currencyRepository.deleteById(currencyId);
             } catch (DataAccessException ex) {
-                log.error("Currency with id {} could not be deleted", currencyId, ex);
-                throw new CompletionException(ex.getMessage(), ex.getCause());
+                String err = format("Currency with id %s could not be deleted.", currencyId);
+                log.error(err, ex);
+                throw DataAccessViolationException.with(err, ex);
             }
         });
     }

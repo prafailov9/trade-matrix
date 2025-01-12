@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * First step of the order processing.
@@ -28,6 +27,7 @@ public class CreateOrderInitializationService implements CreateOrderInitializati
     /**
      * Creates an initializer based on the order's transaction type.
      * Matches the transactionType name to the initializer service's name(BUY/SELL)
+     *
      * @param createOrderRequest - order to initialize
      * @return - initialized order object
      */

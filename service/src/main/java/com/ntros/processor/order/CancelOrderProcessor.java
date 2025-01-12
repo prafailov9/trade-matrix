@@ -23,7 +23,9 @@ import static java.util.concurrent.CompletableFuture.supplyAsync;
 @Slf4j
 public class CancelOrderProcessor extends AbstractOrderProcessor<CancelOrderRequest, CancelOrderResponse> {
 
-    public CancelOrderProcessor(Executor executor, OrderService orderService, CallbackNotifier<CancelOrderResponse> orderCallbackNotifier) {
+    public CancelOrderProcessor(Executor executor,
+                                OrderService orderService,
+                                CallbackNotifier<CancelOrderResponse> orderCallbackNotifier) {
         super(executor, orderService, orderCallbackNotifier);
     }
 

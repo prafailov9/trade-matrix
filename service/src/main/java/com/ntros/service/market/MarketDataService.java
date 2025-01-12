@@ -29,6 +29,6 @@ public class MarketDataService implements MarketService {
     @Override
     public CompletableFuture<Market> getMarketByCode(String marketCode) {
         return supplyAsync(() -> marketRepository.findByMarketCode(marketCode).orElseThrow(
-                () -> new NotFoundException(String.format("Market not found for code: %s", marketCode))));
+                () -> NotFoundException.with(String.format("Market not found for code: %s", marketCode))));
     }
 }

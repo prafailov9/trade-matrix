@@ -1,6 +1,5 @@
 package com.ntros.service.marketproduct;
 
-import com.ntros.exception.MarketPriceNotFoundException;
 import com.ntros.exception.NotFoundException;
 import com.ntros.marketproduct.MarketProductRepository;
 import com.ntros.model.currency.Currency;
@@ -32,7 +31,7 @@ public class MarketProductDataService implements MarketProductService {
     @Override
     public MarketProduct getMarketProductByIsinMarketCode(String isin, String marketCode) {
         return marketProductRepository.findByProductIsinMarketCode(isin, marketCode)
-                .orElseThrow(() -> new NotFoundException(
+                .orElseThrow(() -> NotFoundException.with(
                         String.format("Product not found for isin: %s, market_code: %s", isin, marketCode)));
     }
 
@@ -41,7 +40,7 @@ public class MarketProductDataService implements MarketProductService {
         return supplyAsync(() ->
                 marketProductRepository.findMarketPriceForProductCurrency(product, currency)
                         .orElseThrow(() ->
-                                new MarketPriceNotFoundException(String.format("Failed to find market price for product %s",
+                                NotFoundException.with(String.format("Failed to find market price for product %s",
                                         product.getProductName()))));
     }
 

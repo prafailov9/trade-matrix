@@ -1,23 +1,21 @@
 package com.ntros.processor.order.execution;
 
+import com.ntros.model.order.Order;
+import com.ntros.model.order.MatchedOrdersHolder;
 import com.ntros.service.order.OrderService;
 import com.ntros.service.portfolio.PortfolioService;
 import com.ntros.service.position.PositionService;
-import com.ntros.service.wallet.WalletService;
-import com.ntros.model.order.Order;
 import com.ntros.service.transaction.TransactionService;
+import com.ntros.service.wallet.WalletService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 /**
  * A stop order becomes a market order when the market price reaches or exceeds the stop price.
  * This means it should only execute once the stop price is triggered, converting it into a market order.
- *
- *
  */
 @Service("stop")
 @Slf4j
@@ -30,7 +28,7 @@ public class StopOrderExecutor extends AbstractOrderExecutor implements OrderExe
 
 
     @Override
-    protected List<Order> fulfillOrders(Order incomingOrder, List<Order> matchingOrders) {
+    public MatchedOrdersHolder fulfillOrders(Order incomingOrder, List<Order> matchingOrders) {
         return null;
     }
 

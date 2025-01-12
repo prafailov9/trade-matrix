@@ -2,14 +2,15 @@ package com.ntros.processor.order.execution;
 
 import com.ntros.exception.OrderProcessingException;
 import com.ntros.model.Position;
+import com.ntros.model.order.MatchedOrdersHolder;
 import com.ntros.model.order.Order;
 import com.ntros.model.order.OrderStatus;
-import com.ntros.model.order.OrderType;
 import com.ntros.model.order.Side;
 import com.ntros.model.portfolio.Portfolio;
 import com.ntros.model.transaction.Transaction;
 import com.ntros.model.transaction.TransactionType;
 import com.ntros.model.wallet.Wallet;
+import com.ntros.processor.order.fulfillment.OrderFulfillment;
 import com.ntros.service.order.OrderService;
 import com.ntros.service.portfolio.PortfolioService;
 import com.ntros.service.position.PositionService;
@@ -29,13 +30,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
+import static com.ntros.model.order.Side.BUY;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 @Service
 @Slf4j
-public abstract class AbstractOrderExecutor implements OrderExecutor {
+public abstract class AbstractOrderExecutor implements OrderExecutor, OrderFulfillment {
 
-    protected final Executor executor;
+    protected final Executor taskExecutor;
     protected final OrderService orderService;
     protected final TransactionService transactionService;
     protected final PositionService positionService;
@@ -43,10 +45,10 @@ public abstract class AbstractOrderExecutor implements OrderExecutor {
     protected final PortfolioService portfolioService;
 
     @Autowired
-    public AbstractOrderExecutor(@Qualifier("taskExecutor") Executor executor, OrderService orderService,
+    public AbstractOrderExecutor(@Qualifier("taskExecutor") Executor taskExecutor, OrderService orderService,
                                  TransactionService transactionService, PositionService positionService,
                                  WalletService walletService, PortfolioService portfolioService) {
-        this.executor = executor;
+        this.taskExecutor = taskExecutor;
         this.orderService = orderService;
         this.transactionService = transactionService;
         this.positionService = positionService;
@@ -63,59 +65,10 @@ public abstract class AbstractOrderExecutor implements OrderExecutor {
                 return order;  // no matches, keep order open
             }
             return executeFulfillment(order, matchingOrders);
-        }, executor).exceptionally(ex -> {
-            throw new OrderProcessingException(ex.getMessage(), ex);
-        });
-    }
-
-    @Transactional
-    private Order executeFulfillment(Order incomingOrder, List<Order> matchingOrders) {
-        List<Order> fulfilledOrders = fulfillOrders(incomingOrder, matchingOrders);
-        List<Order> savedOrders = saveFulfilledOrders(fulfilledOrders);
-        createBuyOrderPositions(savedOrders);
-        createOrderTransactions(savedOrders);
-        return savedOrders.get(savedOrders.size() - 1); // last order is the incoming one
-    }
-
-    protected abstract List<Order> fulfillOrders(Order incomingOrder, List<Order> matchingOrders);
-
-    private List<Order> saveFulfilledOrders(List<Order> fulfilledOrders) {
-        return fulfilledOrders.stream().map(order -> {
-            OrderStatus status = orderService.determineAndUpdateCurrentStatus(order);
-            List<OrderStatus> updatedOrderStatuses = new ArrayList<>(order.getOrderStatuses());
-            updatedOrderStatuses.add(status);
-            order.setOrderStatuses(updatedOrderStatuses);
-
-            return orderService.createOrder(order);
-        }).collect(Collectors.toList());
-    }
-
-    private void createBuyOrderPositions(List<Order> savedOrders) {
-        savedOrders.stream()
-                .filter(order -> order.getSide().equals(Side.BUY))
-                .forEach(buyOrder -> {
-                    Portfolio portfolio = portfolioService.getPortfolioByAccountNumber(
-                            buyOrder.getWallet().getAccount().getAccountNumber());
-
-                    Position position = new Position();
-                    position.setQuantity(buyOrder.getQuantity());
-                    position.setProduct(buyOrder.getMarketProduct().getProduct());
-                    position.setPortfolio(portfolio);
-                    positionService.createPosition(position);
+        }, taskExecutor)
+                .exceptionally(ex -> {
+                    throw new OrderProcessingException(ex.getMessage(), ex);
                 });
-    }
-
-    private void createOrderTransactions(List<Order> savedOrders) {
-        List<Transaction> txs = savedOrders.stream()
-                .map(order -> {
-                    TransactionType transactionType = transactionService.getTransactionType(order.getSide().name());
-                    Portfolio portfolio = portfolioService.getPortfolioByAccount(order.getWallet().getAccount());
-                    Transaction transaction = buildTransaction(order, transactionType, portfolio);
-
-                    log.info("Saving transaction: {}", transaction);
-                    return transactionService.createTransaction(transaction);
-                }).toList();
-        log.info("transactions successfully saved: {}", txs);
     }
 
     protected void transferFundsAndAssets(Order buyOrder, Order sellOrder, int matchedQuantity) {
@@ -141,17 +94,63 @@ public abstract class AbstractOrderExecutor implements OrderExecutor {
                 sellOrder.getSide());
     }
 
-    private Transaction buildTransaction(Order order, TransactionType transactionType, Portfolio portfolio) {
-        return Transaction.builder()
-                .order(order)
-                .marketProduct(order.getMarketProduct())
-                .wallet(order.getWallet())
-                .currency(order.getWallet().getCurrency().getCurrencyCode())
-                .price(order.getPrice())
-                .quantity(order.getFilledQuantity())
-                .transactionType(transactionType)
-                .portfolio(portfolio)
-                .transactionDate(OffsetDateTime.now())
-                .build();
+    @Transactional
+    private Order executeFulfillment(Order incomingOrder, List<Order> matchingOrders) {
+        MatchedOrdersHolder fulfilledOrders = fulfillOrders(incomingOrder, matchingOrders);
+
+        saveFulfilledOrders(fulfilledOrders.getAllOrders());
+        createBuyOrderPositions(fulfilledOrders.getAllOrders());
+        createOrderTransactions(fulfilledOrders.getAllOrders());
+        return fulfilledOrders.getIncomingOrder();
+    }
+
+    private void saveFulfilledOrders(List<Order> fulfilledOrders) {
+        fulfilledOrders.forEach(order -> {
+            OrderStatus status = orderService.determineAndUpdateCurrentStatus(order);
+            List<OrderStatus> updatedOrderStatuses = new ArrayList<>(order.getOrderStatuses());
+            updatedOrderStatuses.add(status);
+            order.setOrderStatuses(updatedOrderStatuses);
+
+            orderService.createOrder(order);
+        });
+    }
+
+    private void createBuyOrderPositions(List<Order> savedOrders) {
+        savedOrders.stream()
+                .filter(order -> order.getSide().equals(BUY))
+                .forEach(buyOrder -> {
+                    Portfolio portfolio = portfolioService.getPortfolioByAccountNumber(
+                            buyOrder.getWallet().getAccount().getAccountNumber());
+
+                    Position position = new Position();
+                    position.setQuantity(buyOrder.getQuantity());
+                    position.setProduct(buyOrder.getMarketProduct().getProduct());
+                    position.setPortfolio(portfolio);
+                    positionService.createPosition(position);
+                });
+    }
+
+    private void createOrderTransactions(List<Order> savedOrders) {
+        List<Transaction> txs = savedOrders.stream()
+                .map(order -> {
+                    TransactionType transactionType = transactionService.getTransactionType(order.getSide().name());
+                    Portfolio portfolio = portfolioService.getPortfolioByAccount(order.getWallet().getAccount());
+
+                    Transaction transaction = Transaction.builder()
+                            .order(order)
+                            .marketProduct(order.getMarketProduct())
+                            .wallet(order.getWallet())
+                            .currency(order.getWallet().getCurrency().getCurrencyCode())
+                            .price(order.getPrice())
+                            .quantity(order.getFilledQuantity())
+                            .transactionType(transactionType)
+                            .portfolio(portfolio)
+                            .transactionDate(OffsetDateTime.now())
+                            .build();
+
+                    log.info("Saving transaction: {}", transaction);
+                    return transactionService.createTransaction(transaction);
+                }).toList();
+        log.info("transactions successfully saved: {}", txs);
     }
 }

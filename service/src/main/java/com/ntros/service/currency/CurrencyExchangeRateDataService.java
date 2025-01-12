@@ -1,8 +1,7 @@
 package com.ntros.service.currency;
 
 import com.ntros.currency.CurrencyExchangeRateRepository;
-import com.ntros.exception.CurrencyNotSupportedException;
-import com.ntros.exception.ExchangeRateNotFoundForPairException;
+import com.ntros.exception.NotFoundException;
 import com.ntros.model.currency.Currency;
 import com.ntros.model.currency.CurrencyExchangeRate;
 import jakarta.transaction.Transactional;
@@ -15,6 +14,7 @@ import java.math.RoundingMode;
 import java.util.Optional;
 
 import static com.ntros.service.currency.CurrencyUtils.getScale;
+import static java.lang.String.format;
 
 @Service
 @Slf4j
@@ -35,7 +35,9 @@ public class CurrencyExchangeRateDataService implements CurrencyExchangeRateServ
     public CurrencyExchangeRate getExchangeRate(Currency source, Currency target) {
         return currencyExchangeRateRepository
                 .findExchangeRateBySourceAndTarget(source, target)
-                .orElseThrow(() -> new ExchangeRateNotFoundForPairException(source.getCurrencyCode(), target.getCurrencyCode()));
+                .orElseThrow(() -> NotFoundException.with(
+                        format("Exchange rate not found for currency pair: [%s -> %s]",
+                                source.getCurrencyCode(), target.getCurrencyCode())));
     }
 
     @Override
@@ -126,7 +128,7 @@ public class CurrencyExchangeRateDataService implements CurrencyExchangeRateServ
                 .map(baseCurrencyCode -> getRate(currencyToConvert.getCurrencyCode(), baseCurrencyCode, isBase))
                 .flatMap(Optional::stream) // filters empty Optionals, unwraps values of non-empty ones
                 .findFirst()
-                .orElseThrow(() -> new CurrencyNotSupportedException(currencyToConvert.getCurrencyCode()));
+                .orElseThrow(() -> NotFoundException.with(format("Currency %s not found", currencyToConvert.getCurrencyCode())));
     }
 
     /**

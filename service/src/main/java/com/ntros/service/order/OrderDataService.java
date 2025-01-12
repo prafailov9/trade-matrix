@@ -1,6 +1,7 @@
 package com.ntros.service.order;
 
-import com.ntros.exception.*;
+import com.ntros.exception.DataConstraintFailureException;
+import com.ntros.exception.NotFoundException;
 import com.ntros.model.order.*;
 import com.ntros.model.product.MarketProduct;
 import com.ntros.order.OrderRepository;
@@ -62,7 +63,7 @@ public class OrderDataService implements OrderService {
     public Order getOrder(String accountNumber, String productIsin) {
         return orderRepository.findByAccountNumberProductIsinOrderStatus(accountNumber, productIsin)
                 .orElseThrow(() ->
-                        new OrderNotFoundException(
+                        NotFoundException.with(
                                 format("Could not find order for AN=%s, isin=%s", accountNumber, productIsin)));
     }
 
@@ -70,7 +71,7 @@ public class OrderDataService implements OrderService {
     public Order updateOrder(Integer orderId, Order order) {
         Order existingOrder = orderRepository.findById(orderId)
                 .orElseThrow(() ->
-                        new OrderNotFoundException(
+                        NotFoundException.with(
                                 format("Order not found for id: %s", orderId)));
 
         // update all fields
@@ -89,7 +90,7 @@ public class OrderDataService implements OrderService {
     @Override
     public CompletableFuture<List<Order>> getAllOrders() {
         return supplyAsync(() -> Optional.of(orderRepository.findAll())
-                .orElseThrow(() -> new OrderNotFoundException("Could Not find any orders.")));
+                .orElseThrow(() -> NotFoundException.with("Could Not find any orders.")));
     }
 
     /**
@@ -118,7 +119,7 @@ public class OrderDataService implements OrderService {
     @Override
     public OrderType getOrderType(String type) {
         return orderTypeRepository.findOneByOrderTypeName(type)
-                .orElseThrow(() -> new OrderTypeNotFoundException(format("Order type not found for: %s", type)));
+                .orElseThrow(() -> NotFoundException.with(format("Order type not found for: %s", type)));
     }
 
     @Override
@@ -134,7 +135,7 @@ public class OrderDataService implements OrderService {
             return orderStatusRepository.save(OrderStatus.builder().order(order).currentStatus(orderStatus.name()).build());
         } catch (DataIntegrityViolationException ex) {
             log.info("[IN OrderDataService.updateOrderStatus()]\n Failed to update status:{} for order:{}", orderStatus, order);
-            throw new OrderStatusCreateFailedException(
+            throw DataConstraintFailureException.with(
                     format(
                             "Could not update order status with given values: order: %s, status: %s",
                             order,
@@ -161,14 +162,14 @@ public class OrderDataService implements OrderService {
     private OrderStatus getOrderStatus(Order order, CurrentOrderStatus currentOrderStatus) {
         return orderStatusRepository.findOneByOrderCurrentStatus(order, currentOrderStatus)
                 .orElseThrow(() ->
-                        new OrderStatusNotFoundException(
+                        NotFoundException.with(
                                 format("status not found for order: %s", order)));
     }
 
     private RuntimeException handleOptimisticLockAndThrow(RuntimeException ex) {
         return ex instanceof OptimisticLockException || ex instanceof ObjectOptimisticLockingFailureException
                 ? ex
-                : new OrderConstraintViolationException(ex.getMessage(), ex);
+                : DataConstraintFailureException.with(ex.getMessage(), ex);
     }
 
 }

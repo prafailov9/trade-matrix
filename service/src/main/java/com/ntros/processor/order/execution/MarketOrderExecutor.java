@@ -2,26 +2,25 @@ package com.ntros.processor.order.execution;
 
 import com.ntros.model.order.Order;
 import com.ntros.model.order.Side;
+import com.ntros.model.order.MatchedOrdersHolder;
 import com.ntros.service.order.OrderService;
 import com.ntros.service.portfolio.PortfolioService;
 import com.ntros.service.position.PositionService;
 import com.ntros.service.transaction.TransactionService;
 import com.ntros.service.wallet.WalletService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Immediately executes the order at best available price.
  */
 @Service("market")
 @Slf4j
-public class MarketOrderExecutor extends AbstractOrderExecutor implements OrderExecutor {
+public class MarketOrderExecutor extends AbstractOrderExecutor {
 
     public MarketOrderExecutor(Executor executor, OrderService orderService, TransactionService transactionService,
                                PositionService positionService, WalletService walletService, PortfolioService portfolioService) {
@@ -42,7 +41,7 @@ public class MarketOrderExecutor extends AbstractOrderExecutor implements OrderE
      */
     @Override
     @Transactional
-    protected List<Order> fulfillOrders(Order incomingOrder, List<Order> matchingOrders) {
+    public MatchedOrdersHolder fulfillOrders(Order incomingOrder, List<Order> matchingOrders) {
         int incomingOrderRemainingQuantity = incomingOrder.getQuantity();
 
         for (Order matchingOrder : matchingOrders) {
@@ -55,8 +54,7 @@ public class MarketOrderExecutor extends AbstractOrderExecutor implements OrderE
             }
         }
 
-        matchingOrders.add(incomingOrder);
-        return matchingOrders;
+        return MatchedOrdersHolder.of(incomingOrder, matchingOrders);
     }
 
     protected void updateFundsAndAssets(Order incomingOrder, Order matchingOrder, int matchedQuantity) {

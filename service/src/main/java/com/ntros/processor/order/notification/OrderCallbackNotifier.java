@@ -53,7 +53,7 @@ public class OrderCallbackNotifier implements CallbackNotifier<CreateOrderRespon
         } catch (JsonProcessingException ex) {
             String err = String.format("Could not convert order response [%s] to json %s", orderResponse, ex.getMessage());
             log.error(err, ex);
-            throw new FailedJsonPayloadProcessingException(err);
+            throw FailedJsonPayloadProcessingException.with(err);
         }
     }
 

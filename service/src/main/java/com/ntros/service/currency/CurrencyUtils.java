@@ -1,6 +1,6 @@
 package com.ntros.service.currency;
 
-import com.ntros.exception.InvalidDecimalAmountException;
+import com.ntros.exception.InvalidArgumentException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
@@ -23,7 +23,7 @@ public final class CurrencyUtils {
      */
     public static int getScale(final BigDecimal amount) {
         if (amount == null) {
-            throw new InvalidDecimalAmountException();
+            throw InvalidArgumentException.with("No amount given.");
         }
         String[] decimalString = amount.toString().split("\\.");
         int leadingDigitsCount = decimalString[0].length();

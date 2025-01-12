@@ -32,7 +32,7 @@ public class PortfolioDataService implements PortfolioService {
     @Override
     public Portfolio getPortfolioByAccountNumber(String accountNumber) {
         return portfolioRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new NotFoundException(
+                .orElseThrow(() -> NotFoundException.with(
                         String.format("Portfolio not found for account: %s",
                                 accountNumber)));
     }
@@ -41,6 +41,6 @@ public class PortfolioDataService implements PortfolioService {
     public Portfolio getPortfolioByAccount(Account account) {
         return portfolioRepository.findByAccount(account)
                 .orElseThrow(() ->
-                        new NotFoundException(String.format("Portfolio not found for account: %s", account)));
+                        NotFoundException.with(String.format("Portfolio not found for account: %s", account)));
     }
 }

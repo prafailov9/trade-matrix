@@ -1,6 +1,6 @@
 package com.ntros.service.product;
 
-import com.ntros.exception.ProductNotFoundException;
+import com.ntros.exception.NotFoundException;
 import com.ntros.model.product.Product;
 import com.ntros.product.ProductRepository;
 import jakarta.transaction.Transactional;
@@ -27,6 +27,6 @@ public class ProductDataService implements ProductService {
     @Override
     public CompletableFuture<Product> getProduct(String isin) {
         return supplyAsync(() -> productRepository.findOneByIsin(isin)
-                .orElseThrow(() -> new ProductNotFoundException(String.format("Product not found for given isin: %s", isin))));
+                .orElseThrow(() -> NotFoundException.with(String.format("Product not found for given isin: %s", isin))));
     }
 }
