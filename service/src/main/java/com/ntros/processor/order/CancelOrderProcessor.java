@@ -6,7 +6,7 @@ import com.ntros.dto.order.response.Status;
 import com.ntros.model.order.CurrentOrderStatus;
 import com.ntros.model.order.Order;
 import com.ntros.model.order.OrderStatus;
-import com.ntros.processor.order.notification.Notifier;
+import com.ntros.processor.order.notification.CallbackNotifier;
 import com.ntros.service.order.OrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,8 +23,8 @@ import static java.util.concurrent.CompletableFuture.supplyAsync;
 @Slf4j
 public class CancelOrderProcessor extends AbstractOrderProcessor<CancelOrderRequest, CancelOrderResponse> {
 
-    public CancelOrderProcessor(Executor executor, OrderService orderService, Notifier<Order> orderNotifier) {
-        super(executor, orderService, orderNotifier);
+    public CancelOrderProcessor(Executor executor, OrderService orderService, CallbackNotifier<CancelOrderResponse> orderCallbackNotifier) {
+        super(executor, orderService, orderCallbackNotifier);
     }
 
     @Override
@@ -48,11 +48,15 @@ public class CancelOrderProcessor extends AbstractOrderProcessor<CancelOrderRequ
     protected CancelOrderResponse buildOrderSuccessResponse(Order order) {
         CancelOrderResponse cancelOrderResponse = new CancelOrderResponse();
 
+        String orderName = format("%s_%s_%s", order.getWallet().getAccount().getAccountNumber(),
+                order.getMarketProduct().getProduct().getProductName(), order.getMarketProduct().getMarket().getMarketCode());
+        cancelOrderResponse.setStatus(SUCCESS);
+        cancelOrderResponse.setName(orderName);
         cancelOrderResponse
                 .setMessage(
-                        format("Order for product:{%s} successfully canceled",
-                                order.getMarketProduct().getProduct()));
-        cancelOrderResponse.setStatus(SUCCESS);
+                        format("Order [%s] for product:{%s} successfully canceled",
+                                orderName, order.getMarketProduct().getProduct()));
+
         log.info("Successfully cancelled order: {}", order);
 
         return cancelOrderResponse;
@@ -66,7 +70,7 @@ public class CancelOrderProcessor extends AbstractOrderProcessor<CancelOrderRequ
         cancelOrderResponse.setMessage(err);
         cancelOrderResponse.setStatus(Status.FAILURE);
 
-        log.error(format("%s. Sending response: {}", err), cancelOrderResponse, ex);
+        log.info(format("%s. Sending response: {}", err), cancelOrderResponse, ex);
 
         return cancelOrderResponse;
     }

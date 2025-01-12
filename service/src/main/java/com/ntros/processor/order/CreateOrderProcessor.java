@@ -6,7 +6,7 @@ import com.ntros.dto.order.response.Status;
 import com.ntros.model.order.Order;
 import com.ntros.processor.order.execution.OrderExecution;
 import com.ntros.processor.order.initialization.create.CreateOrderInitialization;
-import com.ntros.processor.order.notification.Notifier;
+import com.ntros.processor.order.notification.CallbackNotifier;
 import com.ntros.service.order.OrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,11 +24,15 @@ public class CreateOrderProcessor extends AbstractOrderProcessor<CreateOrderRequ
     private final OrderExecution orderExecution;
     private final CreateOrderInitialization createOrderInitialization;
 
-
     @Autowired
-    public CreateOrderProcessor(Executor executor, OrderService orderService, Notifier<Order> orderNotifier, OrderExecution orderExecution,
+    public CreateOrderProcessor(Executor executor,
+                                OrderService orderService,
+                                CallbackNotifier<CreateOrderResponse> orderCallbackNotifier,
+                                OrderExecution orderExecution,
                                 CreateOrderInitialization createOrderInitialization) {
-        super(executor, orderService, orderNotifier);
+
+        super(executor, orderService, orderCallbackNotifier);
+
         this.orderExecution = orderExecution;
         this.createOrderInitialization = createOrderInitialization;
     }
@@ -48,6 +52,9 @@ public class CreateOrderProcessor extends AbstractOrderProcessor<CreateOrderRequ
         CreateOrderResponse createOrderResponse = new CreateOrderResponse();
         createOrderResponse.setStatus(Status.SUCCESS);
         createOrderResponse.setMessage(format("Order [%s] successfully initialized and scheduled for fulfillment.", order));
+        createOrderResponse.setName(format("%s_%s_%s", order.getWallet().getAccount().getAccountNumber(),
+                order.getMarketProduct().getProduct().getProductName(), order.getMarketProduct().getMarket().getMarketCode()));
+
         return createOrderResponse;
     }
 

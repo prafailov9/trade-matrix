@@ -56,8 +56,9 @@ final public class RestExceptionHandlerRegistry {
                 GenericExceptionHandler.of(ProductNotFoundException.class, HttpStatus.NOT_FOUND, Throwable::getMessage),
                 GenericExceptionHandler.of(RetryLimitExceededException.class, HttpStatus.INTERNAL_SERVER_ERROR, Throwable::getMessage),
                 GenericExceptionHandler.of(NotFoundException.class, HttpStatus.NOT_FOUND, Throwable::getMessage),
-                GenericExceptionHandler.of(TransferFundsAndAssetsException.class, HttpStatus.BAD_REQUEST, Throwable::getMessage)
-                );
+                GenericExceptionHandler.of(TransferFundsAndAssetsException.class, HttpStatus.BAD_REQUEST, Throwable::getMessage),
+                GenericExceptionHandler.of(FailedJsonPayloadProcessingException.class, HttpStatus.INTERNAL_SERVER_ERROR, Throwable::getMessage)
+        );
 
     }
 
