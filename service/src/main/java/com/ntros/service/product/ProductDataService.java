@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
 
+import static java.lang.String.format;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 @Service
@@ -27,6 +28,6 @@ public class ProductDataService implements ProductService {
     @Override
     public CompletableFuture<Product> getProduct(String isin) {
         return supplyAsync(() -> productRepository.findOneByIsin(isin)
-                .orElseThrow(() -> NotFoundException.with(String.format("Product not found for given isin: %s", isin))));
+                .orElseThrow(() -> NotFoundException.with(format("Product not found for given isin: %s", isin))));
     }
 }

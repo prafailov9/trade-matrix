@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import static java.lang.String.format;
+
 @Service("sell")
 @Slf4j
 public class SellOrderInitializer extends AbstractCreateOrderInitializer {
@@ -24,7 +26,7 @@ public class SellOrderInitializer extends AbstractCreateOrderInitializer {
         int positionQuantity = positionService.getQuantityByAccountNumberAndProductIsin(request.getAccountNumber(), request.getProductIsin());
         if (positionQuantity < request.getQuantity()) {
             throw InvalidArgumentException.with(
-                    String.format("Not enough assets to sell. Requested sells=%s, position quantity=%s",
+                    format("Not enough assets to sell. Requested sells=%s, position quantity=%s",
                             request.getQuantity(), positionQuantity));
         }
     }

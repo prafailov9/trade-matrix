@@ -13,6 +13,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
+import static java.lang.String.format;
+
 @Service
 @Slf4j
 public class OrderCallbackNotifier implements CallbackNotifier<CreateOrderResponse> {
@@ -51,7 +53,7 @@ public class OrderCallbackNotifier implements CallbackNotifier<CreateOrderRespon
         try {
             return objectMapper.writeValueAsString(orderResponse);
         } catch (JsonProcessingException ex) {
-            String err = String.format("Could not convert order response [%s] to json %s", orderResponse, ex.getMessage());
+            String err = format("Could not convert order response [%s] to json %s", orderResponse, ex.getMessage());
             log.error(err, ex);
             throw FailedJsonPayloadProcessingException.with(err);
         }

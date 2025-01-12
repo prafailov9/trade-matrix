@@ -16,11 +16,11 @@ final public class RestExceptionHandlerRegistry {
     static {
         HANDLERS = Set.of(
                 GenericExceptionHandler.of(NotFoundException.class, HttpStatus.NOT_FOUND, Throwable::getMessage),
-                GenericExceptionHandler.of(InvalidArgumentException.class, HttpStatus.BAD_REQUEST, Throwable::getMessage)
+                GenericExceptionHandler.of(InvalidArgumentException.class, HttpStatus.BAD_REQUEST, Throwable::getMessage),
                 GenericExceptionHandler.of(DataConstraintFailureException.class, HttpStatus.INTERNAL_SERVER_ERROR, Throwable::getMessage),
                 GenericExceptionHandler.of(DataAccessViolationException.class, HttpStatus.INTERNAL_SERVER_ERROR, Throwable::getMessage),
                 GenericExceptionHandler.of(OrderProcessingException.class, HttpStatus.INTERNAL_SERVER_ERROR, Throwable::getMessage),
-                GenericExceptionHandler.of(FailedJsonPayloadProcessingException.class, HttpStatus.INTERNAL_SERVER_ERROR, Throwable::getMessage),
+                GenericExceptionHandler.of(FailedJsonPayloadProcessingException.class, HttpStatus.INTERNAL_SERVER_ERROR, Throwable::getMessage)
                 );
     }
 

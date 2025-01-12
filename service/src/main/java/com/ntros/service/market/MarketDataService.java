@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
 
+import static java.lang.String.format;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 
@@ -29,6 +30,6 @@ public class MarketDataService implements MarketService {
     @Override
     public CompletableFuture<Market> getMarketByCode(String marketCode) {
         return supplyAsync(() -> marketRepository.findByMarketCode(marketCode).orElseThrow(
-                () -> NotFoundException.with(String.format("Market not found for code: %s", marketCode))));
+                () -> NotFoundException.with(format("Market not found for code: %s", marketCode))));
     }
 }

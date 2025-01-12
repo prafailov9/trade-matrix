@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
+import static java.lang.String.format;
+
 @Service("buy")
 @Slf4j
 public class BuyOrderInitializer extends AbstractCreateOrderInitializer {
@@ -17,7 +19,7 @@ public class BuyOrderInitializer extends AbstractCreateOrderInitializer {
         Wallet wallet = walletService.getWalletByCurrencyCodeAccountNumber(request.getCurrencyCode(), request.getAccountNumber());
         BigDecimal requiredAmount = request.getPrice().multiply(BigDecimal.valueOf(request.getQuantity()));
         if (wallet.getBalance().compareTo(requiredAmount) < 0) {
-            throw InvalidArgumentException.with(String.format("Not enough funds to complete the buy order. Current funds: %s", wallet.getBalance()));
+            throw InvalidArgumentException.with(format("Not enough funds to complete the buy order. Current funds: %s", wallet.getBalance()));
         }
     }
 }

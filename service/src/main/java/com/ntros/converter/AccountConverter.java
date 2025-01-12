@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+import static java.lang.String.format;
+
 @Component
 public class AccountConverter implements Converter<AccountDTO, Account> {
 
@@ -24,7 +26,7 @@ public class AccountConverter implements Converter<AccountDTO, Account> {
     public AccountDTO toDTO(Account model) {
         AccountDTO form = new AccountDTO();
         form.setAccountNumber(model.getAccountNumber());
-        form.setAccountOwner(String.format("%s %s", model.getUser().getFirstName(), model.getUser().getLastName()));
+        form.setAccountOwner(format("%s %s", model.getUser().getFirstName(), model.getUser().getLastName()));
         form.setAccountNumber(model.getAccountNumber());
         form.setTotalBalance(model.getTotalBalance());
         form.setCreatedDate(model.getCreatedDate());

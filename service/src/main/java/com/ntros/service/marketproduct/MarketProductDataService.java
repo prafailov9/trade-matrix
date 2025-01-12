@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.concurrent.CompletableFuture;
 
+import static java.lang.String.format;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
 @Service
@@ -31,8 +32,9 @@ public class MarketProductDataService implements MarketProductService {
     @Override
     public MarketProduct getMarketProductByIsinMarketCode(String isin, String marketCode) {
         return marketProductRepository.findByProductIsinMarketCode(isin, marketCode)
-                .orElseThrow(() -> NotFoundException.with(
-                        String.format("Product not found for isin: %s, market_code: %s", isin, marketCode)));
+                .orElseThrow(() ->
+                        NotFoundException.with(format("Product not found for isin: %s, market_code: %s",
+                                isin, marketCode)));
     }
 
     @Override
@@ -40,7 +42,7 @@ public class MarketProductDataService implements MarketProductService {
         return supplyAsync(() ->
                 marketProductRepository.findMarketPriceForProductCurrency(product, currency)
                         .orElseThrow(() ->
-                                NotFoundException.with(String.format("Failed to find market price for product %s",
+                                NotFoundException.with(format("Failed to find market price for product %s",
                                         product.getProductName()))));
     }
 

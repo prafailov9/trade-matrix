@@ -4,6 +4,8 @@ import com.ntros.dto.TransactionDTO;
 import com.ntros.model.transaction.Transaction;
 import org.springframework.stereotype.Component;
 
+import static java.lang.String.format;
+
 @Component
 public class TransactionConverter implements Converter<TransactionDTO, Transaction> {
     @Override
@@ -22,7 +24,7 @@ public class TransactionConverter implements Converter<TransactionDTO, Transacti
         dto.setMarketCode(model.getMarketProduct().getMarket().getMarketCode());
 
         dto.setTransactionType(model.getTransactionType().getTransactionTypeName());
-        dto.setTxGenName(String.format("%s_%s_%s_%s", dto.getAccNum(),
+        dto.setTxGenName(format("%s_%s_%s_%s", dto.getAccNum(),
                 dto.getAccName(),
                 dto.getMarketCode(),
                 dto.getProdName()));
