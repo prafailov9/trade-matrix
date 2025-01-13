@@ -45,4 +45,9 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
             "AND os.currentStatus = 'OPEN' OR os.currentStatus = 'PARTIALLY_FILLED' " +
             "ORDER BY o.price ASC, o.placedAt ASC")
     List<Order> findAllByMatchingSellOrders(@Param("marketProduct") MarketProduct marketProduct, @Param("buyOrderPrice") BigDecimal buyOrderPrice);
+
+    @Query("SELECT o FROM OrderStatus os JOIN os.order o WHERE os.currentStatus = 'OPEN'")
+    List<Order> findAllOpenOrders();
+
 }
+

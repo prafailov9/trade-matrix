@@ -11,6 +11,10 @@ public class OrderBook {
     private final List<Order> orders = new ArrayList<>();
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
+    private static class OrderBookInstance {
+
+    }
+
     public void addOrder(Order order) {
         lock.writeLock().lock();
         try {
