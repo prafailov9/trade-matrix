@@ -16,6 +16,9 @@ public interface OrderService {
     Order createOrder(Order order);
     Order updateOrder(Integer orderId, Order order);
     CompletableFuture<List<Order>> getAllOrders();
+    CompletableFuture<List<Order>> getAllOpenOrders();
+    CompletableFuture<List<Order>> getAllFilledOrders();
+    CompletableFuture<List<Order>> getAllPartialOrders();
     OrderType getOrderType(String type);
     CompletableFuture<List<OrderStatus>> getAllByOrder(Order order);
 
@@ -28,6 +31,4 @@ public interface OrderService {
      * Order Matching Logic
      */
     List<Order> findMatchingOrders(Order order);
-    List<Order> findMatchingBuyOrders(MarketProduct marketProduct, BigDecimal price);
-    List<Order> findMatchingSellOrders(MarketProduct marketProduct, BigDecimal price);
 }

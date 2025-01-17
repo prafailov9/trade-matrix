@@ -1,5 +1,6 @@
 package com.ntros.processor.order;
 
+import com.ntros.cache.OrderBook;
 import com.ntros.dto.order.request.OrderRequest;
 import com.ntros.dto.order.response.OrderResponse;
 import com.ntros.model.order.Order;
@@ -21,16 +22,13 @@ public abstract class AbstractOrderProcessor<S extends OrderRequest, R extends O
 
     protected final Executor executor;
     protected final OrderService orderService;
-    protected final CallbackNotifier<R> callbackNotifier;
+//    @Autowired
+//    protected CallbackNotifier<R> callbackNotifier;
 
     @Autowired
-    public AbstractOrderProcessor(@Qualifier("taskExecutor") Executor executor,
-                                  OrderService orderService,
-                                  CallbackNotifier<R> callbackNotifier) {
-
+    public AbstractOrderProcessor(@Qualifier("taskExecutor") Executor executor, OrderService orderService) {
         this.executor = executor;
         this.orderService = orderService;
-        this.callbackNotifier = callbackNotifier;
     }
 
     /**
@@ -64,7 +62,9 @@ public abstract class AbstractOrderProcessor<S extends OrderRequest, R extends O
                 Order processedOrder = process(initializedOrder).join();
                 log.info("Successfully processed order: [{}]", processedOrder);
 
-                callbackNotifier.notifyCallback(buildOrderSuccessResponse(processedOrder), orderRequest.getCallbackUrl());
+                // remove order from orderBook
+                OrderBook.forMarket(processedOrder.market()).removeOrder(processedOrder.getOrderId());
+//                callbackNotifier.notifyCallback(buildOrderSuccessResponse(processedOrder), orderRequest.getCallbackUrl());
             } catch (Exception ex) {
                 log.error("Failed to process order: {}", initializedOrder, ex);
             }

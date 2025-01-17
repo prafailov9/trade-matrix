@@ -17,7 +17,7 @@ import java.util.List;
 @ToString(exclude = {"wallet", "marketProduct", "orderStatuses"})
 @RequiredArgsConstructor
 @AllArgsConstructor
-public class Order {
+public class Order { // TODO: Add expiryDate field for TTL in cache
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer orderId;
@@ -62,10 +62,23 @@ public class Order {
 
     public void adjustQuantity(int matchedQuantity) {
         filledQuantity += matchedQuantity;
-        remainingQuantity -=matchedQuantity;
+        remainingQuantity -= matchedQuantity;
     }
 
     public OrderStatus getCurrentOrderStatus() {
-        return orderStatuses.get(orderStatuses.size() - 1);
+        return (orderStatuses != null && !orderStatuses.isEmpty())
+                ? orderStatuses.get(orderStatuses.size() - 1)
+                : null;
+    }
+
+    public String market() {
+        return marketProduct.getMarket().getMarketCode();
+    }
+    public String isin() {
+        return marketProduct.getProduct().getIsin();
+    }
+
+    public String priceString() {
+        return String.format("%010.2f", price); // Converts price to a zero-padded String
     }
 }

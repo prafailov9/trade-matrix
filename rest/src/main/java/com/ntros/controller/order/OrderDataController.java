@@ -27,7 +27,6 @@ public class OrderDataController extends AbstractApiController {
 
     }
 
-
     @GetMapping("/all")
     @ResponseBody
     public CompletableFuture<ResponseEntity<?>> getAllOrders() {
@@ -36,5 +35,38 @@ public class OrderDataController extends AbstractApiController {
                         .map(orderDataConverter::toDTO)
                         .collect(Collectors.toList()), executor)
                 .handleAsync(this::handleResponseAsync, executor);
+    }
+
+    @GetMapping("/open")
+    @ResponseBody
+    public CompletableFuture<ResponseEntity<?>> getAllOpenOrders() {
+        return orderService.getAllOpenOrders()
+                .thenApplyAsync(orders -> orders.stream()
+                        .map(orderDataConverter::toDTO)
+                        .collect(Collectors.toList()), executor)
+                .handleAsync(this::handleResponseAsync, executor);
+
+    }
+
+    @GetMapping("/filled")
+    @ResponseBody
+    public CompletableFuture<ResponseEntity<?>> getAllFilledOrders() {
+        return orderService.getAllFilledOrders()
+                .thenApplyAsync(orders -> orders.stream()
+                        .map(orderDataConverter::toDTO)
+                        .collect(Collectors.toList()), executor)
+                .handleAsync(this::handleResponseAsync, executor);
+
+    }
+
+    @GetMapping("/partial")
+    @ResponseBody
+    public CompletableFuture<ResponseEntity<?>> getAllPartialOrders() {
+        return orderService.getAllPartialOrders()
+                .thenApplyAsync(orders -> orders.stream()
+                        .map(orderDataConverter::toDTO)
+                        .collect(Collectors.toList()), executor)
+                .handleAsync(this::handleResponseAsync, executor);
+
     }
 }

@@ -6,6 +6,7 @@ import com.ntros.dto.order.response.CreateOrderResponse;
 import com.ntros.exception.FailedJsonPayloadProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -15,7 +16,7 @@ import java.net.http.HttpResponse;
 
 import static java.lang.String.format;
 
-@Service
+@Component
 @Slf4j
 public class OrderCallbackNotifier implements CallbackNotifier<CreateOrderResponse> {
 

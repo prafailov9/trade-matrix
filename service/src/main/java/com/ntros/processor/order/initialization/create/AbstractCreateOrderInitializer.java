@@ -1,6 +1,7 @@
 package com.ntros.processor.order.initialization.create;
 
 
+import com.ntros.cache.OrderBook;
 import com.ntros.converter.order.OrderProcessingConverter;
 import com.ntros.dto.order.request.CreateOrderRequest;
 import com.ntros.model.order.CurrentOrderStatus;
@@ -66,7 +67,9 @@ public abstract class AbstractCreateOrderInitializer implements CreateOrderIniti
     protected Order createOpenOrderAndStatus(Order openOrder) {
         Order createdOrder = orderService.createOrder(openOrder);
         OrderStatus orderStatus = orderService.updateOrderStatus(createdOrder, CurrentOrderStatus.OPEN);
+
         createdOrder.setOrderStatuses(List.of(orderStatus));
+        OrderBook.forMarket(openOrder.market()).addOrder(createdOrder);
         log.info("Order initialized: {} for [product = {}, currency = {}, account = {}] with status: {}",
                 createdOrder,
                 createdOrder.getMarketProduct(),

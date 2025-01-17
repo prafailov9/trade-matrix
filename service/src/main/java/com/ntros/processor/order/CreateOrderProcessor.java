@@ -27,11 +27,10 @@ public class CreateOrderProcessor extends AbstractOrderProcessor<CreateOrderRequ
     @Autowired
     public CreateOrderProcessor(Executor executor,
                                 OrderService orderService,
-                                CallbackNotifier<CreateOrderResponse> orderCallbackNotifier,
                                 OrderExecution orderExecution,
                                 CreateOrderInitialization createOrderInitialization) {
 
-        super(executor, orderService, orderCallbackNotifier);
+        super(executor, orderService);
 
         this.orderExecution = orderExecution;
         this.createOrderInitialization = createOrderInitialization;

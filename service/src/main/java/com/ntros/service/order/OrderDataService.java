@@ -1,5 +1,6 @@
 package com.ntros.service.order;
 
+import com.ntros.cache.OrderBook;
 import com.ntros.exception.DataConstraintFailureException;
 import com.ntros.exception.NotFoundException;
 import com.ntros.model.order.*;
@@ -21,6 +22,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import static com.ntros.model.order.Side.BUY;
+import static com.ntros.model.order.Side.SELL;
 import static java.lang.String.format;
 import static java.util.concurrent.CompletableFuture.supplyAsync;
 
@@ -50,6 +53,9 @@ public class OrderDataService implements OrderService {
     public Order createOrder(Order order) {
         try {
             Order saved = orderRepository.save(order);
+
+            // add to order book
+            OrderBook.forMarket(order.market()).addOrder(order);
             log.info("Saved order: {}", saved);
             return saved;
         } catch (DataIntegrityViolationException | OptimisticLockException ex) {
@@ -74,6 +80,9 @@ public class OrderDataService implements OrderService {
                         NotFoundException.with(
                                 format("Order not found for id: %s", orderId)));
 
+        // remove existing order from OrderBOok
+        OrderBook.forMarket(order.market()).removeOrder(orderId);
+
         // update all fields
         existingOrder.setOrderType(order.getOrderType());
         existingOrder.setWallet(order.getWallet());
@@ -84,13 +93,38 @@ public class OrderDataService implements OrderService {
         existingOrder.setRemainingQuantity(order.getRemainingQuantity());
         existingOrder.setPlacedAt(order.getPlacedAt());
 
-        return orderRepository.save(existingOrder);
+        // Save updated order
+        Order updatedOrder = orderRepository.save(existingOrder);
+
+        // Add the updated order to the OrderBook
+        OrderBook.forMarket(order.market()).addOrder(updatedOrder);
+
+        return updatedOrder;
     }
 
     @Override
     public CompletableFuture<List<Order>> getAllOrders() {
         return supplyAsync(() -> Optional.of(orderRepository.findAll())
-                .orElseThrow(() -> NotFoundException.with("Could Not find any orders.")));
+                .orElseThrow(() -> NotFoundException.with("No orders found.")));
+    }
+
+    @Override
+    public CompletableFuture<List<Order>> getAllOpenOrders() {
+        return supplyAsync(() -> Optional.of(orderRepository.findAllOpen())
+                .orElseThrow(() -> NotFoundException.with("No OPEN orders found.")));
+    }
+
+    @Override
+    public CompletableFuture<List<Order>> getAllFilledOrders() {
+        return supplyAsync(() -> Optional.of(orderRepository.findAllFilled())
+                .orElseThrow(() -> NotFoundException.with("No OPEN orders found.")));
+    }
+
+    @Override
+    public CompletableFuture<List<Order>> getAllPartialOrders() {
+        return supplyAsync(() -> Optional.of(orderRepository.findAllPartial())
+                .orElseThrow(() -> NotFoundException.with("No OPEN orders found.")));
+
     }
 
     /**
@@ -99,22 +133,28 @@ public class OrderDataService implements OrderService {
     @Override
     public List<Order> findMatchingOrders(Order order) {
         return order.getSide().equals(Side.BUY)
-                ? findMatchingSellOrders(order.getMarketProduct(), order.getPrice())
-                : findMatchingBuyOrders(order.getMarketProduct(), order.getPrice());
+                ? findMatchingSellOrders(order.getMarketProduct(), order.getPrice(), order.getOrderType().getOrderTypeName())
+                : findMatchingBuyOrders(order.getMarketProduct(), order.getPrice(), order.getOrderType().getOrderTypeName());
     }
 
 
-    @Override
-    public List<Order> findMatchingBuyOrders(MarketProduct marketProduct, BigDecimal price) {
-        return orderRepository.findAllByMatchingBuyOrders(marketProduct, price);
+    public List<Order> findMatchingSellOrders(MarketProduct marketProduct, BigDecimal bidPrice, String orderType) {
+        List<Order> orders = OrderBook.forMarket(marketProduct.getMarket().getMarketCode())
+                .getMatchingOrders(bidPrice, marketProduct.getProduct().getIsin(), BUY, orderType);
+
+        return (orders != null && !orders.isEmpty())
+                ? orders
+                : orderRepository.findAllMatchingAsks(marketProduct, bidPrice);
     }
 
+    public List<Order> findMatchingBuyOrders(MarketProduct marketProduct, BigDecimal askPrice, String orderType) {
+        List<Order> orders = OrderBook.forMarket(marketProduct.getMarket().getMarketCode())
+                .getMatchingOrders(askPrice, marketProduct.getProduct().getIsin(), SELL, orderType);
 
-    @Override
-    public List<Order> findMatchingSellOrders(MarketProduct marketProduct, BigDecimal price) {
-        return orderRepository.findAllByMatchingSellOrders(marketProduct, price);
+        return (orders != null && !orders.isEmpty())
+                ? orders
+                : orderRepository.findAllMatchingBids(marketProduct, askPrice);
     }
-
 
     @Override
     public OrderType getOrderType(String type) {
@@ -127,14 +167,16 @@ public class OrderDataService implements OrderService {
         return supplyAsync(() -> getOrderStatus(order), executor);
     }
 
-
     @Override
     public OrderStatus updateOrderStatus(Order order, CurrentOrderStatus orderStatus) {
         try {
-            log.info("[IN OrderDataService.updateOrderStatus()]\nUpdating status:{} for order:{}", orderStatus, order);
-            return orderStatusRepository.save(OrderStatus.builder().order(order).currentStatus(orderStatus.name()).build());
+            log.info("Updating status:{} for order:{}", orderStatus, order);
+            return orderStatusRepository.save(OrderStatus.builder()
+                    .order(order)
+                    .currentStatus(orderStatus.name())
+                    .build());
         } catch (DataIntegrityViolationException ex) {
-            log.info("[IN OrderDataService.updateOrderStatus()]\n Failed to update status:{} for order:{}", orderStatus, order);
+            log.info("Failed to update status:{} for order:{}", orderStatus, order);
             throw DataConstraintFailureException.with(
                     format(
                             "Could not update order status with given values: order: %s, status: %s",
@@ -146,13 +188,28 @@ public class OrderDataService implements OrderService {
 
     @Override
     public OrderStatus determineAndUpdateCurrentStatus(Order order) {
-        return order.getQuantity() == order.getFilledQuantity() && order.getRemainingQuantity() == 0
-                ? updateOrderStatus(order, CurrentOrderStatus.FILLED)
-                : updateOrderStatus(order, CurrentOrderStatus.PARTIALLY_FILLED);
+        if (order.getQuantity() == order.getFilledQuantity() && order.getRemainingQuantity() == 0) {
+            OrderStatus status = updateOrderStatus(order, CurrentOrderStatus.FILLED);
+            // remove from order book
+            OrderBook.forMarket(order.market()).removeOrder(order.getOrderId());
+            return status;
+        }
+        return updateOrderStatus(order, CurrentOrderStatus.PARTIALLY_FILLED);
     }
 
     @Override
     public void transferFunds(Order buyOrder, Order sellOrder, int matchedQuantity) {
+        log.info("Transferring funds for matched orders: Buy={}, Sell={}, Quantity={}",
+                buyOrder, sellOrder, matchedQuantity);
+
+        buyOrder.adjustQuantity(matchedQuantity);
+        determineAndUpdateCurrentStatus(buyOrder);
+
+        sellOrder.adjustQuantity(matchedQuantity);
+        determineAndUpdateCurrentStatus(sellOrder);
+
+        orderRepository.save(buyOrder);
+        orderRepository.save(sellOrder);
     }
 
     private List<OrderStatus> getOrderStatus(Order order) {

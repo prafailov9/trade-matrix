@@ -29,25 +29,31 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
             "JOIN os.order o " +
             "WHERE o.marketProduct = :marketProduct " +
             "AND o.side = 'BUY' " +
-            "AND o.price <= :sellOrderPrice " +
+            "AND o.price <= :ask " +
             "AND o.quantity > 0 " +
             "AND os.currentStatus = 'OPEN' OR os.currentStatus = 'PARTIALLY_FILLED' " +
             "ORDER BY o.price ASC, o.placedAt ASC")
-    List<Order> findAllByMatchingBuyOrders(@Param("marketProduct") MarketProduct marketProduct, @Param("sellOrderPrice") BigDecimal sellOrderPrice);
+    List<Order> findAllMatchingBids(@Param("marketProduct") MarketProduct marketProduct, @Param("ask") BigDecimal ask);
 
     // Finds sell orders for open buy order, sorts by most recent + lowest prices
     @Query("SELECT o FROM OrderStatus os " +
             "JOIN os.order o " +
             "WHERE o.marketProduct = :marketProduct " +
             "AND o.side = 'SELL' " +
-            "AND o.price >= :buyOrderPrice " +
+            "AND o.price >= :bid " +
             "AND o.quantity > 0 " +
             "AND os.currentStatus = 'OPEN' OR os.currentStatus = 'PARTIALLY_FILLED' " +
             "ORDER BY o.price ASC, o.placedAt ASC")
-    List<Order> findAllByMatchingSellOrders(@Param("marketProduct") MarketProduct marketProduct, @Param("buyOrderPrice") BigDecimal buyOrderPrice);
+    List<Order> findAllMatchingAsks(@Param("marketProduct") MarketProduct marketProduct, @Param("bid") BigDecimal bid);
 
     @Query("SELECT o FROM OrderStatus os JOIN os.order o WHERE os.currentStatus = 'OPEN'")
-    List<Order> findAllOpenOrders();
+    List<Order> findAllOpen();
+
+    @Query("SELECT o FROM OrderStatus os JOIN os.order o WHERE os.currentStatus = 'FILLED'")
+    List<Order> findAllFilled();
+
+    @Query("SELECT o FROM OrderStatus os JOIN os.order o WHERE os.currentStatus = 'PARTIALLY_FILLED'")
+    List<Order> findAllPartial();
 
 }
 
