@@ -26,7 +26,6 @@ public class OrderBook implements OrderCache {
     // Primary index: ISIN -> Secondary index (price -> orders)
     private final Map<String, TreeMap<BigDecimal, List<Order>>> bids;
     private final Map<String, TreeMap<BigDecimal, List<Order>>> asks;
-
     private final Map<Integer, Order> orders;
 
     // cache locks
@@ -88,11 +87,10 @@ public class OrderBook implements OrderCache {
         var priceIndex = isinIndex.computeIfAbsent(order.isin(), k -> initializeInnerMap(order.getSide()));
 
         // get or create the price level list
-        runSafe(getLock(order.getSide()),
-                () -> {
-                    var ordersAtPrice = priceIndex.computeIfAbsent(order.getPrice(), k -> new ArrayList<>());
-                    ordersAtPrice.add(order);
-                });
+        runSafe(getLock(order.getSide()), () -> {
+            var ordersAtPrice = priceIndex.computeIfAbsent(order.getPrice(), k -> new ArrayList<>());
+            ordersAtPrice.add(order);
+        });
 
         orders.put(order.getOrderId(), order);
         log.info("Added Order: {} to OrderBook.\nOrder count={} for market={}", order, orders.size(), market);
