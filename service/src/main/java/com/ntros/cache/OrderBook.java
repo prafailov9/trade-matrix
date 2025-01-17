@@ -39,10 +39,8 @@ public class OrderBook implements OrderCache {
         bidsLock = new ReentrantLock();
         asksLock = new ReentrantLock();
 
-        // Primary index: ISIN -> Secondary index (price -> orders)
         bids = new ConcurrentHashMap<>();
         asks = new ConcurrentHashMap<>();
-        // order cache
         orders = new ConcurrentHashMap<>();
     }
 
@@ -89,7 +87,7 @@ public class OrderBook implements OrderCache {
         // prices creates a new [price:map] entry if none exists for the price key
         var priceIndex = isinIndex.computeIfAbsent(order.isin(), k -> initializeInnerMap(order.getSide()));
 
-        // Get or create the price level list
+        // get or create the price level list
         runSafe(getLock(order.getSide()),
                 () -> {
                     var ordersAtPrice = priceIndex.computeIfAbsent(order.getPrice(), k -> new ArrayList<>());
@@ -102,7 +100,6 @@ public class OrderBook implements OrderCache {
 
     @Override
     public Optional<Order> removeOrder(Integer id) {
-        // Remove the order from the global orders map
         Order order = orders.remove(id);
         if (order == null) {
             throw new NoSuchElementException(String.format("Order with ID: %s not found.", id));
@@ -114,10 +111,10 @@ public class OrderBook implements OrderCache {
                 runSafe(getLock(order.getSide()), () -> {
                     priceIndex.computeIfPresent(order.getPrice(), (price, ordersAtPrice) -> {
                         ordersAtPrice.remove(order);
-                        // If the list becomes empty, remove the price index
+                        // ff the list becomes empty, remove the price index
                         return ordersAtPrice.isEmpty() ? null : ordersAtPrice;
                     });
-                    // If the price index becomes empty, remove the ISIN
+                    // if the price index becomes empty, remove the ISIN
                     return priceIndex.isEmpty() ? null : priceIndex;
                 }));
 
@@ -135,13 +132,12 @@ public class OrderBook implements OrderCache {
         var isinIndex = getMatchingIsinIndex(side);
 
         return runSafe(getLock(side), () -> {
-            // Get the ISIN-specific price indexs
             var priceIndex = isinIndex.get(isin);
             if (priceIndex == null) {
-                return List.of(); // No orders for the ISIN
+                return List.of(); // no orders for the ISIN
             }
 
-            // Get the price range
+            // get the price range by order type
             SortedMap<BigDecimal, List<Order>> priceRange =
                     switch (orderType) {
                         case MARKET_ORDER ->
@@ -152,7 +148,6 @@ public class OrderBook implements OrderCache {
                                 throw new IllegalArgumentException(String.format("Unsupported order type: %s", orderType));
                     };
 
-            // Flatten the orders
             return priceRange.values().stream().flatMap(List::stream).toList();
         });
     }
