@@ -9,6 +9,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static com.ntros.cache.LockingUtil.runSafe;
 import static com.ntros.model.order.Side.BUY;
 
 /**
@@ -28,6 +29,7 @@ public class OrderBook implements OrderCache {
 
     private final Map<Integer, Order> orders;
 
+    // cache locks
     private final ReentrantLock bidsLock;
     private final ReentrantLock asksLock;
 
@@ -37,15 +39,16 @@ public class OrderBook implements OrderCache {
         bidsLock = new ReentrantLock();
         asksLock = new ReentrantLock();
 
-        // Primary ISIN indexing for bids and asks
+        // Primary index: ISIN -> Secondary index (price -> orders)
         bids = new ConcurrentHashMap<>();
         asks = new ConcurrentHashMap<>();
-
+        // order cache
         orders = new ConcurrentHashMap<>();
     }
 
     /**
-     * Instance control with Init-on-demand Holder class.
+     * Instance control with Init-on-demand Holder class: <a href="https://en.wikipedia.org/wiki/Initialization-on-demand_holder_idiom">...</a>.
+     * Creates multiple predefined instances of an OrderBook per market.
      */
     private static class InstanceHolder {
         static final Map<String, OrderBook> INSTANCES;
@@ -58,6 +61,13 @@ public class OrderBook implements OrderCache {
         }
     }
 
+    /**
+     * Gets an OrderBook for a specific market.
+     * The very 1st call will initialize the InstanceHolder class and the OrderBook instances.
+     *
+     * @param market - to retrieve an OrderBook
+     * @return - OrderBook
+     */
     public static OrderBook forMarket(String market) {
         OrderBook orderBook = InstanceHolder.INSTANCES.get(market);
         if (orderBook == null) {
@@ -69,92 +79,82 @@ public class OrderBook implements OrderCache {
     @Override
     public void addOrder(Order order) {
         validateOrder(order);
+        var isinIndex = getIsinIndex(order.getSide());
 
-        var priceLevels = getPriceLevels(order.getSide());
-        var lock = getLock(order.getSide());
-
-        lock.lock();
-        try {
-            if (orders.containsKey(order.getOrderId())) {
-                log.info("Order with ID: {} already exists.", order.getOrderId());
-                return;
-            }
-            // Get or create the ISIN index
-            var isinIndex = priceLevels.computeIfAbsent(order.isin(), k -> initInnerMap(order.getSide()));
-            // Get or create the price level list
-            var ordersAtPrice = isinIndex.computeIfAbsent(order.getPrice(), k -> new ArrayList<>());
-            ordersAtPrice.add(order);
-
-            orders.put(order.getOrderId(), order);
-            log.info("Added Order: {} to OrderBook.\nOrder count={} for market={}", order, orders.size(), market);
-        } finally {
-            lock.unlock();
+        if (orders.containsKey(order.getOrderId())) {
+            log.info("Order with ID: {} already exists.", order.getOrderId());
+            return;
         }
+
+        // prices creates a new [price:map] entry if none exists for the price key
+        var priceIndex = isinIndex.computeIfAbsent(order.isin(), k -> initializeInnerMap(order.getSide()));
+
+        // Get or create the price level list
+        runSafe(getLock(order.getSide()),
+                () -> {
+                    var ordersAtPrice = priceIndex.computeIfAbsent(order.getPrice(), k -> new ArrayList<>());
+                    ordersAtPrice.add(order);
+                });
+
+        orders.put(order.getOrderId(), order);
+        log.info("Added Order: {} to OrderBook.\nOrder count={} for market={}", order, orders.size(), market);
     }
 
     @Override
     public Optional<Order> removeOrder(Integer id) {
+        // Remove the order from the global orders map
         Order order = orders.remove(id);
         if (order == null) {
             throw new NoSuchElementException(String.format("Order with ID: %s not found.", id));
         }
 
-        var priceLevels = getPriceLevels(order.getSide());
-        var lock = getLock(order.getSide());
+        var isinIndex = getIsinIndex(order.getSide());
 
-        lock.lock();
-        try {
-            var isinIndex = priceLevels.get(order.isin());
-            if (isinIndex == null) {
-                throw new NoSuchElementException(String.format("No orders found for ISIN: %s", order.isin()));
-            }
-
-            var ordersAtPrice = isinIndex.get(order.getPrice());
-            if (ordersAtPrice == null || ordersAtPrice.isEmpty()) {
-                throw new NoSuchElementException(String.format("No orders at price: %s", order.getPrice()));
-            }
-
-            ordersAtPrice.remove(order);
-            if (ordersAtPrice.isEmpty()) {
-                isinIndex.remove(order.getPrice());
-            }
-            if (isinIndex.isEmpty()) {
-                priceLevels.remove(order.isin());
-            }
-        } finally {
-            lock.unlock();
-        }
+        isinIndex.computeIfPresent(order.isin(), (isin, priceIndex) ->
+                runSafe(getLock(order.getSide()), () -> {
+                    priceIndex.computeIfPresent(order.getPrice(), (price, ordersAtPrice) -> {
+                        ordersAtPrice.remove(order);
+                        // If the list becomes empty, remove the price index
+                        return ordersAtPrice.isEmpty() ? null : ordersAtPrice;
+                    });
+                    // If the price index becomes empty, remove the ISIN
+                    return priceIndex.isEmpty() ? null : priceIndex;
+                }));
 
         return Optional.of(order);
     }
 
+
+    /**
+     * map.keys = [1, 2, 3, 4, 5, 6, 7], x = 5
+     * map.tail(x, true) = [5, 6, 7]
+     * map.head(x, true) = [1, 2, 3, 4, 5]
+     */
     @Override
     public List<Order> getMatchingOrders(BigDecimal price, String isin, Side side, String orderType) {
-        var priceLevels = getMatchingPriceLevels(side);
-        var lock = getLock(side);
+        var isinIndex = getMatchingIsinIndex(side);
 
-        lock.lock();
-        try {
-            // Get the ISIN-specific price levels
-            var isinIndex = priceLevels.get(isin);
-            if (isinIndex == null) {
+        return runSafe(getLock(side), () -> {
+            // Get the ISIN-specific price indexs
+            var priceIndex = isinIndex.get(isin);
+            if (priceIndex == null) {
                 return List.of(); // No orders for the ISIN
             }
 
             // Get the price range
-            SortedMap<BigDecimal, List<Order>> priceRange = switch (orderType) {
-                case MARKET_ORDER -> (side == BUY) ? isinIndex.tailMap(price, true) : isinIndex.headMap(price, true);
-                case LIMIT_ORDER -> (side == BUY) ? isinIndex.headMap(price, true) : isinIndex.tailMap(price, true);
-                default -> {
-                    throw new IllegalArgumentException(String.format("Unsupported order type: %s", orderType));
-                }
-            };
+            SortedMap<BigDecimal, List<Order>> priceRange =
+                    switch (orderType) {
+                        case MARKET_ORDER ->
+                                (side == BUY) ? priceIndex.tailMap(price, true) : priceIndex.headMap(price, true);
+                        case LIMIT_ORDER ->
+                                (side == BUY) ? priceIndex.headMap(price, true) : priceIndex.tailMap(price, true);
+                        default ->
+                                throw new IllegalArgumentException(String.format("Unsupported order type: %s", orderType));
+                    };
 
             // Flatten the orders
             return priceRange.values().stream().flatMap(List::stream).toList();
-        } finally {
-            lock.unlock();
-        }
+        });
     }
 
     @Override
@@ -180,14 +180,15 @@ public class OrderBook implements OrderCache {
         log.info("Cleared OrderBook for Market: {}", market);
     }
 
-    private TreeMap<BigDecimal, List<Order>> initInnerMap(Side side) {
+    private TreeMap<BigDecimal, List<Order>> initializeInnerMap(Side side) {
         return (side == BUY) ? new TreeMap<>(Comparator.reverseOrder()) : new TreeMap<>(Comparator.naturalOrder());
     }
-    private Map<String, TreeMap<BigDecimal, List<Order>>> getPriceLevels(Side side) {
+
+    private Map<String, TreeMap<BigDecimal, List<Order>>> getIsinIndex(Side side) {
         return (side == BUY) ? bids : asks;
     }
 
-    private Map<String, TreeMap<BigDecimal, List<Order>>> getMatchingPriceLevels(Side side) {
+    private Map<String, TreeMap<BigDecimal, List<Order>>> getMatchingIsinIndex(Side side) {
         return (side == BUY) ? asks : bids;
     }
 
