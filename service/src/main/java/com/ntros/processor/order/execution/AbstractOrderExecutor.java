@@ -106,6 +106,7 @@ public abstract class AbstractOrderExecutor implements OrderExecutor, OrderFulfi
 
     private void saveFulfilledOrders(List<Order> fulfilledOrders) {
         fulfilledOrders.forEach(order -> {
+            // will update statuses and remove FILLED orders from OrderBook
             OrderStatus status = orderService.determineAndUpdateCurrentStatus(order);
             List<OrderStatus> updatedOrderStatuses = new ArrayList<>(order.getOrderStatuses());
             updatedOrderStatuses.add(status);
