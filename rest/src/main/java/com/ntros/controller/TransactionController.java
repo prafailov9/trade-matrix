@@ -25,7 +25,7 @@ public class TransactionController extends AbstractApiController {
     }
 
     @GetMapping("/all")
-    CompletableFuture<ResponseEntity<?>> getAll() {
+    CompletableFuture<ResponseEntity<?>> getAllTransactions() {
         return transactionService.getAllTransactionsAsync()
                 .thenApplyAsync(transactions ->
                         transactions.stream()

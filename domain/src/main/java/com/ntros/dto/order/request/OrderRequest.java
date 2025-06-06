@@ -13,7 +13,7 @@ public abstract class OrderRequest {
     private String orderType; // market, limit, stop, fill_or_kill
 
     @Pattern(regexp = "\\d+", message = "AN must be a number.")
-    @Size(min = 8, max = 12, message = "Invalid AN: must be 8 - 13 digits.")
+    @Size(min = 8, max = 12, message = "Invalid AN: must be 8 - 12 digits.")
     protected String accountNumber;
 
     @NotNull(message = "currency code cannot be null.")

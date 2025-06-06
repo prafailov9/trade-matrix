@@ -1,8 +1,8 @@
 package com.ntros.processor.order.execution;
 
+import com.ntros.model.order.MatchedOrdersHolder;
 import com.ntros.model.order.Order;
 import com.ntros.model.order.Side;
-import com.ntros.model.order.MatchedOrdersHolder;
 import com.ntros.service.order.OrderService;
 import com.ntros.service.portfolio.PortfolioService;
 import com.ntros.service.position.PositionService;

@@ -21,6 +21,7 @@ public class CreateOrderRequest extends OrderRequest {
     @Min(value = 1, message = "quantity cannot be less than 1.")
     private int quantity;
 
+    // TODO: Enforce "buy" / "sell" values on tx_type
     @NotNull(message = "tx_type cannot be null.")
     private String transactionType;
 }

@@ -87,10 +87,10 @@ public class OrderBook implements OrderCache {
         var priceIndex = isinIndex.computeIfAbsent(order.isin(), k -> initializeInnerMap(order.getSide()));
 
         // get or create the price level list
-        runSafe(getLock(order.getSide()), () -> {
+        runSafe(() -> {
             var ordersAtPrice = priceIndex.computeIfAbsent(order.getPrice(), k -> new ArrayList<>());
             ordersAtPrice.add(order);
-        });
+        }, getLock(order.getSide()));
 
         orders.put(order.getOrderId(), order);
         log.info("Added Order: {} to OrderBook.\nOrder count={} for market={}", order, orders.size(), market);
@@ -105,17 +105,15 @@ public class OrderBook implements OrderCache {
 
         var isinIndex = getIsinIndex(order.getSide());
 
-        isinIndex.computeIfPresent(order.isin(), (isin, priceIndex) ->
-                runSafe(getLock(order.getSide()), () -> {
-                    priceIndex.computeIfPresent(order.getPrice(), (price, ordersAtPrice) -> {
-                        ordersAtPrice.remove(order);
-                        // ff the list becomes empty, remove the price index
-                        return ordersAtPrice.isEmpty() ? null : ordersAtPrice;
-                    });
-                    // if the price index becomes empty, remove the ISIN
-                    return priceIndex.isEmpty() ? null : priceIndex;
-                }));
-
+        isinIndex.computeIfPresent(order.isin(), (isin, priceIndex) -> runSafe(() -> {
+            priceIndex.computeIfPresent(order.getPrice(), (price, ordersAtPrice) -> {
+                ordersAtPrice.remove(order);
+                // ff the list becomes empty, remove the price index
+                return ordersAtPrice.isEmpty() ? null : ordersAtPrice;
+            });
+            // if the price index becomes empty, remove the ISIN
+            return priceIndex.isEmpty() ? null : priceIndex;
+        }, getLock(order.getSide())));
         return Optional.of(order);
     }
 
@@ -129,25 +127,21 @@ public class OrderBook implements OrderCache {
     public List<Order> getMatchingOrders(BigDecimal price, String isin, Side side, String orderType) {
         var isinIndex = getMatchingIsinIndex(side);
 
-        return runSafe(getLock(side), () -> {
+        return runSafe(() -> {
             var priceIndex = isinIndex.get(isin);
             if (priceIndex == null) {
                 return List.of(); // no orders for the ISIN
             }
 
             // get the price range by order type
-            SortedMap<BigDecimal, List<Order>> priceRange =
-                    switch (orderType) {
-                        case MARKET_ORDER ->
-                                (side == BUY) ? priceIndex.tailMap(price, true) : priceIndex.headMap(price, true);
-                        case LIMIT_ORDER ->
-                                (side == BUY) ? priceIndex.headMap(price, true) : priceIndex.tailMap(price, true);
-                        default ->
-                                throw new IllegalArgumentException(String.format("Unsupported order type: %s", orderType));
-                    };
+            SortedMap<BigDecimal, List<Order>> priceRange = switch (orderType) {
+                case MARKET_ORDER -> (side == BUY) ? priceIndex.tailMap(price, true) : priceIndex.headMap(price, true);
+                case LIMIT_ORDER -> (side == BUY) ? priceIndex.headMap(price, true) : priceIndex.tailMap(price, true);
+                default -> throw new IllegalArgumentException(String.format("Unsupported order type: %s", orderType));
+            };
 
             return priceRange.values().stream().flatMap(List::stream).toList();
-        });
+        }, getLock(side));
     }
 
     @Override
@@ -203,8 +197,7 @@ public class OrderBook implements OrderCache {
             throw new IllegalArgumentException("Invalid order quantity: " + order.getQuantity());
         }
         if (!order.market().equals(market)) {
-            throw new IllegalArgumentException(
-                    String.format("Invalid market code for order: %s. Expected: %s.", order.market(), market));
+            throw new IllegalArgumentException(String.format("Invalid market code for order: %s. Expected: %s.", order.market(), market));
         }
     }
 }

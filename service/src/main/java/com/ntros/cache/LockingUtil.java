@@ -5,7 +5,7 @@ import java.util.function.Supplier;
 
 public class LockingUtil {
 
-    public static <T> T runSafe(ReentrantLock lock, Supplier<T> supplier) {
+    public static <T> T runSafe(Supplier<T> supplier, ReentrantLock lock) {
         lock.lock();
         try {
             return supplier.get();
@@ -14,7 +14,7 @@ public class LockingUtil {
         }
     }
 
-    public static void runSafe(ReentrantLock lock, Runnable codeBlock) {
+    public static void runSafe(Runnable codeBlock, ReentrantLock lock) {
         lock.lock();
         try {
             codeBlock.run(); // Execute the passed lambda
